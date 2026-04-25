@@ -84,9 +84,12 @@ func (c *Client) Login(ctx context.Context, username, password, realm string) (*
 	c.password = password
 	c.realm = realm
 
+	// 构建完整的用户名（username@realm）
+	fullUsername := fmt.Sprintf("%s@%s", username, realm)
+
 	// 构建登录请求体
 	formData := url.Values{}
-	formData.Set("username", username)
+	formData.Set("username", fullUsername)
 	formData.Set("password", password)
 
 	reqURL := fmt.Sprintf("%s/access/ticket", c.baseURL)

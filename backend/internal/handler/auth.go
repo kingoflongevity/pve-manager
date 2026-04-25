@@ -334,7 +334,7 @@ func BuildPVEClient(tokenString string, logger *zap.Logger) (*pve.Client, error)
 	return client, nil
 }
 
-var aesKey = []byte("pve-manager-aes-key-32bytes!!")
+var aesKey = []byte("pve-mgr-aes-key-32-bytes-long!!!") // 32字节 = AES-256
 
 func encryptPassword(password string) (string, error) {
 	block, err := aes.NewCipher(aesKey)
