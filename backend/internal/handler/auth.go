@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/kingoflongevity/pve-manager/backend/internal/pve"
 	"go.uber.org/zap"
 )
 
@@ -32,18 +35,19 @@ type Claims struct {
 // AuthHandler 认证处理器
 // 处理用户登录、token 生成和验证
 type AuthHandler struct {
-	logger *zap.Logger
+	logger    *zap.Logger
+	pveClient *pve.Client
 }
 
 // NewAuthHandler 创建认证处理器实例
-// 接收 logger 用于记录认证相关日志
-func NewAuthHandler(logger *zap.Logger) *AuthHandler {
-	return &AuthHandler{logger: logger}
+// 接收 logger 用于记录认证相关日志，接收 PVE 客户端用于验证凭据
+func NewAuthHandler(logger *zap.Logger, pveClient *pve.Client) *AuthHandler {
+	return &AuthHandler{logger: logger, pveClient: pveClient}
 }
 
 // Login 处理用户登录请求
 // POST /api/auth/login
-// 验证用户凭据，生成 JWT token 返回给客户端
+// 验证用户凭据到 PVE，验证通过后生成 JWT token 返回给客户端
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -54,8 +58,23 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// TODO: 实际项目中应该验证 PVE 凭据
-	// 这里仅作 scaffold 演示，简单返回 token
+	// 验证 PVE 凭据：使用用户名密码登录 PVE
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := h.pveClient.Login(ctx, req.Username, req.Password, "pam")
+	if err != nil {
+		h.logger.Warn("PVE 登录失败",
+			zap.String("username", req.Username),
+			zap.String("ip", c.ClientIP()),
+			zap.Error(err),
+		)
+		c.JSON(401, gin.H{
+			"code":    401,
+			"message": fmt.Sprintf("PVE 认证失败: %s", err.Error()),
+		})
+		return
+	}
 
 	// 生成 JWT token
 	token, expiresIn, err := generateJWT(req.Username)

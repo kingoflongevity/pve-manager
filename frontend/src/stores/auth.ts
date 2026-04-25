@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { post } from '@/api/request'
 
 /**
  * PVE 认证状态存储
@@ -55,14 +56,15 @@ export const useAuthStore = defineStore('auth', () => {
     apiToken?: string
   }): Promise<boolean> {
     try {
-      // TODO: 实际调用后端认证 API
-      // const res = await post('/auth/login', data)
-      // token.value = res.token
-      // currentNode.value = { host: data.host, port: data.port, name: data.host }
+      // 调用后端真实登录 API 获取 JWT token
+      const res = await post<{ token: string; expires_in: number }>('/auth/login', {
+        username: data.username,
+        password: data.password,
+      })
 
-      // 开发阶段模拟登录
-      token.value = 'mock_token_' + Date.now()
+      token.value = res.data.token
       localStorage.setItem('pve_token', token.value)
+
       currentNode.value = {
         host: data.host,
         port: data.port,

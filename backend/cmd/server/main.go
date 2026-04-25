@@ -77,7 +77,7 @@ func main() {
 	r.Use(handler.CORSMiddleware(cfg.CORS))
 
 	// 初始化处理器
-	authHandler := handler.NewAuthHandler(logger)
+	authHandler := handler.NewAuthHandler(logger, pveClient)
 	proxyHandler := handler.NewProxyHandler(pveClient, logger)
 	vncHandler := handler.NewVNCHandler(pveClient, logger)
 
