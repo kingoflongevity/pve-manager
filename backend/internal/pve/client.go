@@ -59,9 +59,8 @@ func NewClient(cfg config.PVEConfig, logger *zap.Logger) (*Client, error) {
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	// 从 BaseURL 中移除 /api2/json 后缀（我们会自己拼接路径）
-	baseURL := strings.TrimSuffix(cfg.BaseURL, "/api2/json")
-	baseURL = strings.TrimSuffix(baseURL, "/")
+	// 移除末尾斜杠
+	baseURL := strings.TrimSuffix(cfg.BaseURL, "/")
 
 	return &Client{
 		baseURL: baseURL,

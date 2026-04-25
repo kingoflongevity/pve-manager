@@ -13,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kingoflongevity/pve-manager/backend/internal/config"
 	"github.com/kingoflongevity/pve-manager/backend/internal/handler"
-	"github.com/kingoflongevity/pve-manager/backend/internal/pve"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +26,25 @@ func main() {
 
 	sugar := logger.Sugar()
 
-	// 加载配置
+	// 初始化 Gin 路由
+	gin.SetMode("debug")
+	r := gin.New()
+
+	// 注册中间件
+	r.Use(gin.Recovery())
+	r.Use(handler.RequestLogMiddleware(logger))
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-PVE-Auth-Token")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
+
+	// 加载配置（仅用于端口等通用配置）
 	cfgPath := os.Getenv("CONFIG_PATH")
 	if cfgPath == "" {
 		cfgPath = "config.yaml"
@@ -35,51 +52,15 @@ func main() {
 
 	cfg, err := config.LoadConfig(cfgPath)
 	if err != nil {
-		// 如果配置文件不存在，生成默认配置并提示
-		if _, statErr := os.Stat(cfgPath); os.IsNotExist(statErr) {
-			sugar.Infof("配置文件不存在，生成默认配置: %s", cfgPath)
-			if genErr := config.GenerateDefaultConfig(cfgPath); genErr != nil {
-				sugar.Fatalf("生成默认配置失败: %v", genErr)
-			}
-			sugar.Infof("请编辑 %s 配置后重新启动服务", cfgPath)
-			os.Exit(1)
+		if _, statErr := os.Stat(cfgPath); !os.IsNotExist(statErr) {
+			sugar.Fatalf("加载配置失败: %v", err)
 		}
-		sugar.Fatalf("加载配置失败: %v", err)
 	}
-
-	// 创建 PVE 客户端
-	pveClient, err := pve.NewClient(cfg.PVE, sugar.Desugar())
-	if err != nil {
-		sugar.Fatalf("创建 PVE 客户端失败: %v", err)
-	}
-
-	// 后台自动登录 PVE
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		sugar.Infof("正在登录 PVE: %s", cfg.PVE.BaseURL)
-		_, err := pveClient.Login(ctx, cfg.PVE.Username, cfg.PVE.Password, cfg.PVE.Realm)
-		if err != nil {
-			sugar.Errorf("PVE 登录失败: %v", err)
-			return
-		}
-		sugar.Info("PVE 登录成功")
-	}()
-
-	// 初始化 Gin 路由
-	gin.SetMode(cfg.Server.Mode)
-	r := gin.New()
-
-	// 注册中间件
-	r.Use(gin.Recovery())
-	r.Use(handler.RequestLogMiddleware(logger))
-	r.Use(handler.CORSMiddleware(cfg.CORS))
 
 	// 初始化处理器
-	authHandler := handler.NewAuthHandler(logger, pveClient)
-	proxyHandler := handler.NewProxyHandler(pveClient, logger)
-	vncHandler := handler.NewVNCHandler(pveClient, logger)
+	authHandler := handler.NewAuthHandler(logger)
+	proxyHandler := handler.NewProxyHandler(logger)
+	vncHandler := handler.NewVNCHandler(logger)
 
 	// 注册路由
 	setupRoutes(r, authHandler, proxyHandler, vncHandler, logger)

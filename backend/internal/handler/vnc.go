@@ -21,21 +21,17 @@ import (
 // 负责将前端的 WebSocket 连接代理到 PVE 的 vncwebsocket 端点
 // 实现双向 WebSocket 流量转发
 type VNCHandler struct {
-	pveClient *pve.Client
-	logger    *zap.Logger
-	upgrader  websocket.Upgrader
+	logger   *zap.Logger
+	upgrader websocket.Upgrader
 }
 
 // NewVNCHandler 创建 VNC WebSocket 代理处理器
-// upgrader 配置允许跨域 WebSocket 连接
-func NewVNCHandler(pveClient *pve.Client, logger *zap.Logger) *VNCHandler {
+func NewVNCHandler(logger *zap.Logger) *VNCHandler {
 	return &VNCHandler{
-		pveClient: pveClient,
-		logger:    logger,
+		logger: logger,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  4096,
 			WriteBufferSize: 4096,
-			// 允许所有来源的 WebSocket 连接（已通过 JWT 中间件鉴权）
 			CheckOrigin: func(r *http.Request) bool {
 				return true
 			},
@@ -49,6 +45,19 @@ type vncTicketResponse struct {
 	Ticket string `json:"ticket"`
 	Cert   string `json:"cert,omitempty"`
 	UPID   string `json:"upid"`
+}
+
+func (h *VNCHandler) getPVEClientFromRequest(c *gin.Context) (*pve.Client, error) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return nil, fmt.Errorf("未提供认证令牌")
+	}
+	tokenString := authHeader[7:]
+	client, err := BuildPVEClient(tokenString, h.logger)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 /**
@@ -75,7 +84,6 @@ func (h *VNCHandler) ProxyVNCWebSocket(c *gin.Context) {
 		return
 	}
 
-	// 验证 vmType
 	if vmType != "qemu" && vmType != "lxc" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    400,
@@ -84,16 +92,15 @@ func (h *VNCHandler) ProxyVNCWebSocket(c *gin.Context) {
 		return
 	}
 
-	// 检查认证状态
-	if !h.pveClient.IsAuthenticated() {
+	client, err := h.getPVEClientFromRequest(c)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    401,
-			"message": "PVE 客户端未认证",
+			"message": "认证失败: " + err.Error(),
 		})
 		return
 	}
 
-	// 升级 HTTP 连接为 WebSocket
 	clientConn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		h.logger.Error("WebSocket 升级失败", zap.Error(err))
@@ -101,8 +108,7 @@ func (h *VNCHandler) ProxyVNCWebSocket(c *gin.Context) {
 	}
 	defer clientConn.Close()
 
-	// 获取 VNC 代理票据
-	ticketResp, err := h.getVNCTicket(node, vmid, vmType)
+	ticketResp, err := h.getVNCTicket(client, node, vmid, vmType)
 	if err != nil {
 		h.logger.Error("获取 VNC 票据失败",
 			zap.String("node", node),
@@ -114,8 +120,7 @@ func (h *VNCHandler) ProxyVNCWebSocket(c *gin.Context) {
 		return
 	}
 
-	// 连接到 PVE 的 vncwebsocket 端点
-	pveConn, err := h.connectToPVEVNC(node, vmid, vmType, ticketResp)
+	pveConn, err := h.connectToPVEVNC(client, node, vmid, vmType, ticketResp)
 	if err != nil {
 		h.logger.Error("连接 PVE VNC 失败",
 			zap.String("node", node),
@@ -133,34 +138,24 @@ func (h *VNCHandler) ProxyVNCWebSocket(c *gin.Context) {
 		zap.String("vmType", vmType),
 	)
 
-	// 双向转发 WebSocket 流量
 	h.bidirectionalForward(clientConn, pveConn)
 }
 
 /**
  * getVNCTicket 调用 PVE API 获取 VNC 代理票据
- *
- * @param node 节点名称
- * @param vmid 虚拟机 ID
- * @param vmType 虚拟机类型 (qemu | lxc)
- * @return 包含 port, ticket, upid 的票据信息
  */
-func (h *VNCHandler) getVNCTicket(node, vmid, vmType string) (*vncTicketResponse, error) {
-	// 构建 vncproxy API 路径
+func (h *VNCHandler) getVNCTicket(client *pve.Client, node, vmid, vmType string) (*vncTicketResponse, error) {
 	apiPath := fmt.Sprintf("nodes/%s/%s/%s/vncproxy", node, vmType, vmid)
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// 使用 PVE client 的 Do 方法获取票据
-	resp, err := h.pveClient.Do(ctx, "POST", apiPath, map[string]interface{}{
+	resp, err := client.Do(ctx, "POST", apiPath, map[string]interface{}{
 		"websocket": 1,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("调用 vncproxy 失败: %w", err)
 	}
 
-	// 解析响应数据
 	data, ok := resp.Data.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("vncproxy 响应数据格式错误")
@@ -181,28 +176,14 @@ func (h *VNCHandler) getVNCTicket(node, vmid, vmType string) (*vncTicketResponse
 
 /**
  * connectToPVEVNC 连接到 PVE 的 vncwebsocket 端点
- *
- * PVE vncwebsocket 协议：
- * 1. 首先发送一个 JSON 握手消息包含 ticket
- * 2. 等待 PVE 返回 "OK" 响应
- * 3. 之后开始转发 VNC 帧数据
- *
- * @param node 节点名称
- * @param vmid 虚拟机 ID
- * @param vmType 虚拟机类型
- * @param ticketResp VNC 票据信息
- * @return WebSocket 连接
  */
-func (h *VNCHandler) connectToPVEVNC(node, vmid, vmType string, ticketResp *vncTicketResponse) (*websocket.Conn, error) {
-	// 获取 PVE 基础 URL 并解析
-	baseURL := h.pveClient.GetBaseURL()
+func (h *VNCHandler) connectToPVEVNC(client *pve.Client, node, vmid, vmType string, ticketResp *vncTicketResponse) (*websocket.Conn, error) {
+	baseURL := client.GetBaseURL()
 	parsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("解析 baseURL 失败: %w", err)
 	}
 
-	// 构建 WebSocket URL
-	// PVE vncwebsocket 路径: /api2/json/nodes/{node}/{vmType}/{vmid}/vncwebsocket/{port}/{ticket}
 	wsScheme := "wss"
 	if parsedURL.Scheme == "http" {
 		wsScheme = "ws"
@@ -217,9 +198,8 @@ func (h *VNCHandler) connectToPVEVNC(node, vmid, vmType string, ticketResp *vncT
 		Path:   wsPath,
 	}
 
-	// 构建 WebSocket 请求头（复用 PVE 认证）
 	requestHeader := http.Header{}
-	ticket := h.pveClient.GetTicket()
+	ticket := client.GetTicket()
 	if ticket != "" {
 		if len(ticket) > 12 && ticket[:12] == "PVEAPIToken=" {
 			requestHeader.Set("Authorization", ticket)
@@ -228,7 +208,6 @@ func (h *VNCHandler) connectToPVEVNC(node, vmid, vmType string, ticketResp *vncT
 		}
 	}
 
-	// 连接到 PVE vncwebsocket
 	dialer := websocket.Dialer{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
 	}
@@ -238,7 +217,6 @@ func (h *VNCHandler) connectToPVEVNC(node, vmid, vmType string, ticketResp *vncT
 		return nil, fmt.Errorf("WebSocket 连接 PVE 失败: %w", err)
 	}
 
-	// 发送握手消息（PVE vncwebsocket 协议要求）
 	handshakeMsg := struct {
 		Host string `json:"host"`
 	}{
@@ -255,7 +233,6 @@ func (h *VNCHandler) connectToPVEVNC(node, vmid, vmType string, ticketResp *vncT
 		return nil, fmt.Errorf("发送握手消息失败: %w", err)
 	}
 
-	// 等待 PVE 确认
 	_, _, err = pveConn.ReadMessage()
 	if err != nil {
 		pveConn.Close()
@@ -388,17 +365,16 @@ func (h *VNCHandler) VNCProxyTicket(c *gin.Context) {
 		return
 	}
 
-	// 检查认证状态
-	if !h.pveClient.IsAuthenticated() {
+	client, err := h.getPVEClientFromRequest(c)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    401,
-			"message": "PVE 客户端未认证",
+			"message": "认证失败: " + err.Error(),
 		})
 		return
 	}
 
-	// 获取 VNC 票据
-	ticketResp, err := h.getVNCTicket(node, vmidStr, vmType)
+	ticketResp, err := h.getVNCTicket(client, node, vmidStr, vmType)
 	if err != nil {
 		h.logger.Error("获取 VNC 票据失败",
 			zap.String("node", node),

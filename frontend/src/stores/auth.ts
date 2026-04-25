@@ -46,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * 用户登录
-   * @param data 登录凭据（用户名/密码 或 API Token）
+   * @param data 登录凭据（PVE 地址、用户名、密码）
    */
   async function login(data: {
     host: string
@@ -54,12 +54,16 @@ export const useAuthStore = defineStore('auth', () => {
     username: string
     password?: string
     apiToken?: string
+    realm?: string
   }): Promise<boolean> {
     try {
-      // 调用后端真实登录 API 获取 JWT token
+      // 调用后端真实登录 API，传递 PVE 连接信息
       const res = await post<{ token: string; expires_in: number }>('/auth/login', {
+        host: data.host,
+        port: data.port,
         username: data.username,
         password: data.password,
+        realm: data.realm || 'pam',
       })
 
       token.value = res.data.token
@@ -72,7 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       userInfo.value = {
         username: data.username,
-        realm: 'pam',
+        realm: data.realm || 'pam',
         permissions: [],
       }
       return true

@@ -10,7 +10,7 @@ import (
 )
 
 // JWTAuthMiddleware JWT 认证中间件
-// 验证请求中的 Authorization header，解析并校验 JWT token
+// 验证请求中的 Authorization header，解析 JWT token，将完整 Claims 存入上下文
 func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -40,7 +40,8 @@ func JWTAuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// 将用户信息存入上下文
+		// 将完整 Claims 存入上下文，后续 handler 可从中提取 PVE 连接信息
+		c.Set("claims", claims)
 		c.Set("username", claims.Username)
 		c.Next()
 	}
