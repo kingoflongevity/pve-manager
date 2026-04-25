@@ -42,6 +42,7 @@ export default {
   },
   layout: {
     dashboard: '仪表盘',
+    compute: '计算资源',
     qemu: '虚拟机',
     lxc: '容器',
     node: '节点管理',

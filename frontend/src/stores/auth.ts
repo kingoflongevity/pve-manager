@@ -58,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
       // TODO: 实际调用后端认证 API
       // const res = await post('/auth/login', data)
       // token.value = res.token
-      // currentUserNode.value = { host: data.host, port: data.port, name: data.host }
+      // currentNode.value = { host: data.host, port: data.port, name: data.host }
 
       // 开发阶段模拟登录
       token.value = 'mock_token_' + Date.now()

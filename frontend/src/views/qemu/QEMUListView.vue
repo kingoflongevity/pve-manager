@@ -1,53 +1,617 @@
 <template>
-  <div class="page-container">
-    <el-card>
-      <template #header>
-        <div class="flex-between">
-          <span>{{ t('qemu.title') }}</span>
-          <el-button type="primary" @click="handleCreate">{{ t('qemu.createVM') }}</el-button>
-        </div>
-      </template>
-      <el-table :data="vmList" style="width: 100%" stripe>
-        <el-table-column prop="vmid" :label="t('qemu.vmid')" width="100" />
-        <el-table-column prop="name" :label="t('common.name')" />
-        <el-table-column prop="status" :label="t('common.status')" width="120">
+  <div class="vm-list-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1 class="page-title">{{ t('qemu.title') }}</h1>
+        <p class="page-description">管理和监控所有虚拟机实例</p>
+      </div>
+      <div class="header-right">
+        <el-button type="primary" @click="handleCreate">
+          <el-icon><Plus /></el-icon>
+          创建虚拟机
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <!-- 批量操作 -->
+        <el-dropdown :disabled="selectedRows.length === 0" @command="handleBatchCommand">
+          <el-button :disabled="selectedRows.length === 0">
+            批量操作
+            <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="start">
+                <el-icon><VideoPlay /></el-icon>
+                批量启动
+              </el-dropdown-item>
+              <el-dropdown-item command="stop">
+                <el-icon><VideoPause /></el-icon>
+                批量关机
+              </el-dropdown-item>
+              <el-dropdown-item command="reboot">
+                <el-icon><RefreshRight /></el-icon>
+                批量重启
+              </el-dropdown-item>
+              <el-dropdown-item command="delete" divided>
+                <el-icon><Delete /></el-icon>
+                批量删除
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
+        <span v-if="selectedRows.length > 0" class="selected-count">
+          已选择 {{ selectedRows.length }} 项
+        </span>
+      </div>
+
+      <div class="toolbar-right">
+        <!-- 状态筛选 -->
+        <el-select
+          v-model="filterStatus"
+          placeholder="状态筛选"
+          clearable
+          style="width: 120px"
+          @change="handleFilter"
+        >
+          <el-option label="运行中" value="running" />
+          <el-option label="已停止" value="stopped" />
+          <el-option label="错误" value="error" />
+        </el-select>
+
+        <!-- 搜索 -->
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索虚拟机名称或ID"
+          clearable
+          style="width: 240px"
+          @input="handleSearch"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+
+        <!-- 刷新 -->
+        <el-button text @click="handleRefresh">
+          <el-icon><Refresh /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 数据表格 -->
+    <el-card class="table-card">
+      <el-table
+        v-loading="loading"
+        :data="filteredVMList"
+        style="width: 100%"
+        stripe
+        border
+        @selection-change="handleSelectionChange"
+        @row-click="handleRowClick"
+      >
+        <el-table-column type="selection" width="50" />
+
+        <el-table-column prop="vmid" :label="t('qemu.vmid')" width="90" sortable />
+
+        <el-table-column prop="name" :label="t('common.name')" min-width="180">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'running' ? 'success' : 'danger'">
-              {{ row.status === 'running' ? '运行中' : '已停止' }}
-            </el-tag>
+            <div class="vm-name">
+              <span class="name-text">{{ row.name }}</span>
+              <el-tag v-if="row.nodeType" size="small" type="info">{{ row.nodeType }}</el-tag>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="cpu" label="CPU" width="100" />
-        <el-table-column prop="memory" :label="t('qemu.memory')" width="120" />
-        <el-table-column :label="t('common.actions')" width="200">
-          <template #default>
-            <el-button link type="primary" size="small">{{ t('qemu.start') }}</el-button>
-            <el-button link type="danger" size="small">{{ t('qemu.stop') }}</el-button>
-            <el-button link type="warning" size="small">{{ t('qemu.console') }}</el-button>
+
+        <el-table-column prop="status" :label="t('common.status')" width="110">
+          <template #default="{ row }">
+            <VMStatusBadge :status="row.status" />
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="node" label="节点" width="120" />
+
+        <el-table-column label="CPU" width="100" sortable prop="cpu">
+          <template #default="{ row }">
+            <div class="resource-cell">
+              <span>{{ row.cpu }} 核</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column :label="t('qemu.memory')" width="120" sortable prop="memory">
+          <template #default="{ row }">
+            <div class="resource-cell">
+              <span>{{ row.memory }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="磁盘" width="120">
+          <template #default="{ row }">
+            <div class="resource-cell">
+              <span>{{ row.disk }}</span>
+            </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="IP 地址" width="150">
+          <template #default="{ row }">
+            <span class="ip-text">{{ row.ip || '-' }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column prop="uptime" label="运行时间" width="120" />
+
+        <el-table-column :label="t('common.actions')" width="200" fixed="right">
+          <template #default="{ row }">
+            <div class="action-buttons">
+              <el-button
+                v-if="row.status === 'stopped'"
+                link
+                type="success"
+                size="small"
+                @click.stop="handleStart(row)"
+              >
+                启动
+              </el-button>
+              <el-button
+                v-else
+                link
+                type="danger"
+                size="small"
+                @click.stop="handleStop(row)"
+              >
+                关机
+              </el-button>
+              <el-button
+                link
+                type="primary"
+                size="small"
+                @click.stop="handleConsole(row)"
+              >
+                控制台
+              </el-button>
+              <el-dropdown trigger="click" @command="handleRowCommand($event, row)">
+                <el-button link type="primary" size="small">
+                  更多
+                  <el-icon><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="reboot">
+                      <el-icon><RefreshRight /></el-icon>
+                      重启
+                    </el-dropdown-item>
+                    <el-dropdown-item command="snapshot">
+                      <el-icon><Camera /></el-icon>
+                      快照
+                    </el-dropdown-item>
+                    <el-dropdown-item command="clone">
+                      <el-icon><CopyDocument /></el-icon>
+                      克隆
+                    </el-dropdown-item>
+                    <el-dropdown-item command="migrate">
+                      <el-icon><Position /></el-icon>
+                      迁移
+                    </el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>
+                      <el-icon><Delete /></el-icon>
+                      删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分页 -->
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Plus,
+  Search,
+  Refresh,
+  ArrowDown,
+  VideoPlay,
+  VideoPause,
+  RefreshRight,
+  Delete,
+  Camera,
+  CopyDocument,
+  Position,
+} from '@element-plus/icons-vue'
+import VMStatusBadge from '@/components/vm/VMStatusBadge.vue'
 
+const router = useRouter()
 const { t } = useI18n()
 
+const loading = ref(false)
+const searchQuery = ref('')
+const filterStatus = ref('')
+const currentPage = ref(1)
+const pageSize = ref(20)
+const total = ref(3)
+const selectedRows = ref<any[]>([])
+
 /**
- * 虚拟机模拟数据（开发阶段占位）
+ * 虚拟机列表数据（模拟）
  */
 const vmList = ref([
-  { vmid: 100, name: 'web-server-01', status: 'running', cpu: 4, memory: '8 GB' },
-  { vmid: 101, name: 'db-server-01', status: 'running', cpu: 8, memory: '16 GB' },
-  { vmid: 102, name: 'test-vm', status: 'stopped', cpu: 2, memory: '4 GB' },
+  {
+    vmid: 100,
+    name: 'web-server-01',
+    status: 'running' as const,
+    node: 'pve-node-01',
+    nodeType: 'QEMU',
+    cpu: 4,
+    memory: '8 GB',
+    disk: '100 GB',
+    ip: '192.168.1.101',
+    uptime: '15 天',
+  },
+  {
+    vmid: 101,
+    name: 'db-server-01',
+    status: 'running' as const,
+    node: 'pve-node-01',
+    nodeType: 'QEMU',
+    cpu: 8,
+    memory: '16 GB',
+    disk: '500 GB',
+    ip: '192.168.1.102',
+    uptime: '12 天',
+  },
+  {
+    vmid: 102,
+    name: 'test-vm',
+    status: 'stopped' as const,
+    node: 'pve-node-01',
+    nodeType: 'QEMU',
+    cpu: 2,
+    memory: '4 GB',
+    disk: '50 GB',
+    ip: '',
+    uptime: '-',
+  },
 ])
 
+// 筛选后的列表
+const filteredVMList = computed(() => {
+  let list = vmList.value
+
+  // 状态筛选
+  if (filterStatus.value) {
+    list = list.filter(vm => vm.status === filterStatus.value)
+  }
+
+  // 搜索
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    list = list.filter(vm =>
+      vm.name.toLowerCase().includes(query) ||
+      vm.vmid.toString().includes(query)
+    )
+  }
+
+  return list
+})
+
+/**
+ * 创建虚拟机
+ */
 function handleCreate() {
   ElMessage.info('虚拟机创建向导开发中...')
 }
+
+/**
+ * 批量操作命令
+ */
+function handleBatchCommand(command: string) {
+  if (selectedRows.value.length === 0) return
+
+  ElMessage.info(`批量操作: ${command} (${selectedRows.value.length} 台)`)
+  // TODO: 实现批量操作逻辑
+}
+
+/**
+ * 行命令
+ */
+function handleRowCommand(command: string, row: any) {
+  switch (command) {
+    case 'start':
+      handleStart(row)
+      break
+    case 'stop':
+      handleStop(row)
+      break
+    case 'reboot':
+      handleReboot(row)
+      break
+    case 'snapshot':
+      ElMessage.info('快照功能开发中...')
+      break
+    case 'clone':
+      ElMessage.info('克隆功能开发中...')
+      break
+    case 'migrate':
+      ElMessage.info('迁移功能开发中...')
+      break
+    case 'delete':
+      handleDelete(row)
+      break
+  }
+}
+
+/**
+ * 启动虚拟机
+ */
+function handleStart(row: any) {
+  ElMessageBox.confirm(`确认启动虚拟机 ${row.name}？`, '提示', {
+    confirmButtonText: '确认',
+    cancelButtonText: '取消',
+    type: 'info',
+  }).then(() => {
+    ElMessage.success('启动命令已发送')
+    // TODO: 调用 API 启动虚拟机
+  }).catch(() => {})
+}
+
+/**
+ * 关闭虚拟机
+ */
+function handleStop(row: any) {
+  ElMessageBox.confirm(`确认关闭虚拟机 ${row.name}？`, '警告', {
+    confirmButtonText: '确认',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    ElMessage.success('关机命令已发送')
+    // TODO: 调用 API 关闭虚拟机
+  }).catch(() => {})
+}
+
+/**
+ * 重启虚拟机
+ */
+function handleReboot(row: any) {
+  ElMessageBox.confirm(`确认重启虚拟机 ${row.name}？`, '警告', {
+    confirmButtonText: '确认',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    ElMessage.success('重启命令已发送')
+    // TODO: 调用 API 重启虚拟机
+  }).catch(() => {})
+}
+
+/**
+ * 删除虚拟机
+ */
+function handleDelete(row: any) {
+  ElMessageBox.confirm(
+    `确认删除虚拟机 ${row.name}？此操作不可恢复！`,
+    '危险操作',
+    {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'error',
+    }
+  ).then(() => {
+    ElMessage.success('删除命令已发送')
+    // TODO: 调用 API 删除虚拟机
+  }).catch(() => {})
+}
+
+/**
+ * 打开控制台
+ */
+function handleConsole(row: any) {
+  ElMessage.info(`打开 ${row.name} 控制台 (开发中...)`)
+  // TODO: 实现 noVNC 控制台
+}
+
+/**
+ * 选择变化
+ */
+function handleSelectionChange(rows: any[]) {
+  selectedRows.value = rows
+}
+
+/**
+ * 行点击
+ */
+function handleRowClick(row: any) {
+  // TODO: 跳转到详情页面
+  console.log('点击行:', row)
+}
+
+/**
+ * 搜索
+ */
+function handleSearch() {
+  currentPage.value = 1
+}
+
+/**
+ * 筛选
+ */
+function handleFilter() {
+  currentPage.value = 1
+}
+
+/**
+ * 刷新
+ */
+function handleRefresh() {
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+    ElMessage.success('数据刷新成功')
+  }, 500)
+}
+
+/**
+ * 分页变化
+ */
+function handleSizeChange(size: number) {
+  pageSize.value = size
+  currentPage.value = 1
+}
+
+function handlePageChange(page: number) {
+  currentPage.value = page
+}
 </script>
+
+<style lang="scss" scoped>
+@use '@/assets/styles/variables' as *;
+
+.vm-list-page {
+  padding: $spacing-6;
+  min-height: 100%;
+  overflow: auto;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-6;
+  gap: $spacing-4;
+
+  @media (max-width: $breakpoint-sm) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-left {
+    .page-title {
+      font-size: $font-size-3xl;
+      font-weight: $font-weight-bold;
+      color: $color-text-primary;
+      margin-bottom: $spacing-1;
+    }
+
+    .page-description {
+      color: $color-text-secondary;
+      font-size: $font-size-base;
+    }
+  }
+}
+
+// 工具栏
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-4;
+  gap: $spacing-4;
+  flex-wrap: wrap;
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: $spacing-4;
+
+    .selected-count {
+      color: $color-text-secondary;
+      font-size: $font-size-sm;
+    }
+  }
+
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: $spacing-3;
+  }
+}
+
+// 表格卡片
+.table-card {
+  :deep(.el-card__body) {
+    padding: 0;
+  }
+}
+
+// 表格样式
+:deep(.el-table) {
+  .el-table__header th {
+    background: $gray-2;
+  }
+
+  .el-table__row {
+    cursor: pointer;
+
+    &:hover {
+      background: $primary-1;
+    }
+  }
+}
+
+// 虚拟机名称
+.vm-name {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+
+  .name-text {
+    font-weight: $font-weight-medium;
+    color: $color-text-primary;
+  }
+}
+
+// 资源单元格
+.resource-cell {
+  font-size: $font-size-sm;
+  color: $color-text-regular;
+}
+
+// IP 文本
+.ip-text {
+  font-family: $font-family-code;
+  font-size: $font-size-sm;
+  color: $color-text-regular;
+}
+
+// 操作按钮
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: $spacing-2;
+}
+
+// 分页
+.pagination-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: $spacing-4 $spacing-6;
+  border-top: 1px solid $color-border-light;
+}
+</style>

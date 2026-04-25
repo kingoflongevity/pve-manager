@@ -1,72 +1,161 @@
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <el-icon :size="40" color="#409eff"><Monitor /></el-icon>
-        <h2>{{ t('auth.loginTitle') }}</h2>
-      </div>
+  <div class="login-page">
+    <!-- 背景装饰 -->
+    <div class="login-background">
+      <div class="bg-shape bg-shape-1"></div>
+      <div class="bg-shape bg-shape-2"></div>
+      <div class="bg-shape bg-shape-3"></div>
+      <div class="bg-grid"></div>
+    </div>
 
-      <el-form ref="formRef" :model="loginForm" :rules="rules" label-position="top" @submit.prevent="handleLogin">
-        <!-- 登录方式切换 -->
-        <el-form-item :label="t('auth.loginMethod')">
-          <el-radio-group v-model="loginMethod">
-            <el-radio-button value="password">{{ t('auth.passwordLogin') }}</el-radio-button>
-            <el-radio-button value="token">{{ t('auth.tokenLogin') }}</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
+    <!-- 登录卡片 -->
+    <div class="login-container animate-slide-up">
+      <div class="login-card">
+        <!-- Logo和标题 -->
+        <div class="login-header">
+          <div class="logo-wrapper">
+            <el-icon :size="36" class="logo-icon"><Monitor /></el-icon>
+          </div>
+          <h1 class="login-title">PVE 管理平台</h1>
+          <p class="login-subtitle">Proxmox VE 虚拟化管理面板</p>
+        </div>
 
-        <!-- 节点地址 -->
-        <el-form-item :label="t('auth.nodeAddress')" prop="host">
-          <el-input v-model="loginForm.host" :placeholder="t('auth.nodeAddressPlaceholder')" />
-        </el-form-item>
-
-        <!-- 端口 -->
-        <el-form-item :label="t('auth.nodePort')" prop="port">
-          <el-input-number v-model="loginForm.port" :min="1" :max="65535" style="width: 100%" />
-        </el-form-item>
-
-        <!-- 用户名/密码 -->
-        <template v-if="loginMethod === 'password'">
-          <el-form-item :label="t('auth.username')" prop="username">
-            <el-input v-model="loginForm.username" :placeholder="t('auth.usernamePlaceholder')" />
-          </el-form-item>
-          <el-form-item :label="t('auth.password')" prop="password">
-            <el-input
-              v-model="loginForm.password"
-              type="password"
-              show-password
-              :placeholder="t('auth.passwordPlaceholder')"
+        <!-- 登录表单 -->
+        <el-form ref="formRef" :model="loginForm" :rules="rules" label-position="top" @submit.prevent="handleLogin">
+          <!-- 登录方式切换 -->
+          <el-form-item>
+            <el-segmented
+              v-model="loginMethod"
+              :options="[
+                { label: '用户名密码', value: 'password' },
+                { label: 'API Token', value: 'token' },
+              ]"
+              class="login-segmented"
             />
           </el-form-item>
-        </template>
 
-        <!-- API Token -->
-        <el-form-item v-else :label="t('auth.apiToken')" prop="apiToken">
-          <el-input
-            v-model="loginForm.apiToken"
-            type="password"
-            show-password
-            :placeholder="t('auth.tokenPlaceholder')"
-          />
-        </el-form-item>
+          <!-- 节点地址 -->
+          <el-form-item :label="t('auth.nodeAddress')" prop="host">
+            <el-input
+              v-model="loginForm.host"
+              :placeholder="t('auth.nodeAddressPlaceholder')"
+              size="large"
+              clearable
+            >
+              <template #prefix>
+                <el-icon><Link /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
 
-        <!-- 登录按钮 -->
-        <el-form-item>
-          <el-button type="primary" :loading="loading" class="login-btn" @click="handleLogin">
-            {{ t('common.login') }}
-          </el-button>
-        </el-form-item>
-      </el-form>
+          <!-- 端口 -->
+          <el-form-item :label="t('auth.nodePort')" prop="port">
+            <el-input-number
+              v-model="loginForm.port"
+              :min="1"
+              :max="65535"
+              size="large"
+              class="port-input"
+            />
+          </el-form-item>
+
+          <!-- 用户名/密码 -->
+          <template v-if="loginMethod === 'password'">
+            <el-form-item :label="t('auth.username')" prop="username">
+              <el-input
+                v-model="loginForm.username"
+                :placeholder="t('auth.usernamePlaceholder')"
+                size="large"
+                clearable
+              >
+                <template #prefix>
+                  <el-icon><User /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item :label="t('auth.password')" prop="password">
+              <el-input
+                v-model="loginForm.password"
+                type="password"
+                show-password
+                :placeholder="t('auth.passwordPlaceholder')"
+                size="large"
+              >
+                <template #prefix>
+                  <el-icon><Lock /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+          </template>
+
+          <!-- API Token -->
+          <el-form-item v-else :label="t('auth.apiToken')" prop="apiToken">
+            <el-input
+              v-model="loginForm.apiToken"
+              type="password"
+              show-password
+              :placeholder="t('auth.tokenPlaceholder')"
+              size="large"
+            >
+              <template #prefix>
+                <el-icon><Key /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <!-- 记住我 -->
+          <el-form-item>
+            <div class="form-options">
+              <el-checkbox v-model="rememberMe">记住节点配置</el-checkbox>
+              <el-link type="primary" :underline="false">忘记配置？</el-link>
+            </div>
+          </el-form-item>
+
+          <!-- 登录按钮 -->
+          <el-form-item>
+            <el-button
+              type="primary"
+              size="large"
+              :loading="loading"
+              class="login-btn"
+              @click="handleLogin"
+            >
+              {{ loading ? '登录中...' : t('common.login') }}
+            </el-button>
+          </el-form-item>
+        </el-form>
+
+        <!-- 已保存节点 -->
+        <div v-if="savedNodes.length > 0" class="saved-nodes">
+          <div class="saved-nodes-title">最近使用的节点</div>
+          <div class="saved-nodes-list">
+            <el-tag
+              v-for="node in savedNodes.slice(0, 3)"
+              :key="node.host"
+              class="saved-node-tag"
+              @click="quickLogin(node)"
+            >
+              {{ node.name }}:{{ node.port }}
+            </el-tag>
+          </div>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="login-footer">
+          <span>Proxmox VE Web UI v0.1.0</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Monitor } from '@element-plus/icons-vue'
+import { Monitor, Link, User, Lock, Key } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import type { FormInstance, FormRules } from 'element-plus'
 
@@ -78,6 +167,10 @@ const authStore = useAuthStore()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 const loginMethod = ref<'password' | 'token'>('password')
+const rememberMe = ref(true)
+
+// 已保存的节点
+const savedNodes = computed(() => authStore.savedNodes)
 
 /**
  * 登录表单数据
@@ -102,10 +195,10 @@ const rules: FormRules = {
 }
 
 /**
- * 处理登录表单提交
+ * 处理登录
  * 1. 校验表单
  * 2. 调用认证 store 的 login 方法
- * 3. 登录成功后跳转到目标页面或首页
+ * 3. 登录成功后保存节点配置并跳转
  */
 async function handleLogin() {
   if (!formRef.value) return
@@ -125,12 +218,16 @@ async function handleLogin() {
 
       if (success) {
         ElMessage.success(t('auth.loginSuccess'))
+
         // 保存节点配置
-        authStore.saveNode({
-          host: loginForm.host,
-          port: loginForm.port,
-          name: loginForm.host,
-        })
+        if (rememberMe.value) {
+          authStore.saveNode({
+            host: loginForm.host,
+            port: loginForm.port,
+            name: loginForm.host,
+          })
+        }
+
         // 跳转到目标页面
         const redirect = (route.query.redirect as string) || '/'
         router.push(redirect)
@@ -142,38 +239,203 @@ async function handleLogin() {
     }
   })
 }
+
+/**
+ * 快速登录已保存的节点
+ */
+function quickLogin(node: { host: string; port: number }) {
+  loginForm.host = node.host
+  loginForm.port = node.port
+}
 </script>
 
 <style lang="scss" scoped>
-.login-container {
+@use '@/assets/styles/variables' as *;
+
+.login-page {
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+  padding: $spacing-8;
+}
+
+// 背景装饰
+.login-background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+
+  .bg-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.1;
+    background: #fff;
+
+    &-1 {
+      width: 400px;
+      height: 400px;
+      top: -100px;
+      right: -100px;
+    }
+
+    &-2 {
+      width: 300px;
+      height: 300px;
+      bottom: -50px;
+      left: -50px;
+    }
+
+    &-3 {
+      width: 200px;
+      height: 200px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+.login-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
 }
 
 .login-card {
-  width: 420px;
-  padding: 40px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  background: $gradient-login-card;
+  backdrop-filter: blur(10px);
+  border-radius: $radius-lg;
+  padding: $spacing-10;
+  box-shadow: $shadow-modal;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+
+  @media (max-width: $breakpoint-sm) {
+    padding: $spacing-6;
+  }
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: $spacing-8;
 
-  h2 {
-    margin-top: 12px;
-    font-size: 22px;
-    font-weight: 600;
-    color: #303133;
+  .logo-wrapper {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto $spacing-4;
+    background: $gradient-primary;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(22, 119, 255, 0.3);
+
+    .logo-icon {
+      color: #fff;
+    }
   }
+
+  .login-title {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-2;
+  }
+
+  .login-subtitle {
+    color: $color-text-secondary;
+    font-size: $font-size-sm;
+  }
+}
+
+// 分段控制器
+:deep(.login-segmented) {
+  .el-segmented__item {
+    padding: $spacing-2 $spacing-4;
+  }
+}
+
+// 表单样式
+:deep(.el-form-item) {
+  margin-bottom: $spacing-5;
+
+  .el-form-item__label {
+    font-weight: $font-weight-medium;
+    color: $color-text-regular;
+  }
+}
+
+.port-input {
+  width: 100%;
+}
+
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .login-btn {
   width: 100%;
+  height: 44px;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-sm;
+}
+
+// 已保存节点
+.saved-nodes {
+  margin-top: $spacing-6;
+  padding-top: $spacing-6;
+  border-top: 1px solid $color-border-light;
+
+  .saved-nodes-title {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    margin-bottom: $spacing-3;
+  }
+
+  .saved-nodes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+  }
+
+  .saved-node-tag {
+    cursor: pointer;
+    transition: $transition-fast;
+
+    &:hover {
+      background: $primary-1;
+      color: $color-primary;
+      border-color: $color-primary-light;
+    }
+  }
+}
+
+.login-footer {
+  margin-top: $spacing-8;
+  text-align: center;
+  color: $color-text-placeholder;
+  font-size: $font-size-xs;
+}
+
+// 标签样式覆盖
+:deep(.el-tag) {
+  border-radius: $radius-xs;
 }
 </style>

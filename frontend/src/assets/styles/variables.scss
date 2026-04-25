@@ -1,0 +1,293 @@
+/**
+ * PVE 管理面板设计令牌系统
+ * 基于中国主流企业软件（阿里云、腾讯云）设计规范
+ * 采用 8px 网格系统，确保布局和谐统一
+ */
+
+// ============================================================
+// 颜色系统 - 色板定义
+// ============================================================
+
+// 主色调 - 靛蓝色系（符合中国企业软件审美）
+$primary-1: #e8f3ff;
+$primary-2: #bae7ff;
+$primary-3: #91caff;
+$primary-4: #69b1ff;
+$primary-5: #4096ff;
+$primary-6: #1677ff;  // 主色基准
+$primary-7: #0958d9;
+$primary-8: #003eb3;
+$primary-9: #002c8c;
+$primary-10: #001d66;
+
+// 成功色 - 绿色系
+$success-1: #f6ffed;
+$success-2: #d9f7be;
+$success-3: #b7eb8f;
+$success-4: #95de64;
+$success-5: #73d13d;
+$success-6: #52c41a;  // 成功色基准
+$success-7: #389e0d;
+$success-8: #237804;
+$success-9: #135200;
+$success-10: #092b00;
+
+// 警告色 - 橙色系
+$warning-1: #fffbe6;
+$warning-2: #fff1b8;
+$warning-3: #ffe58f;
+$warning-4: #ffd666;
+$warning-5: #ffc53d;
+$warning-6: #faad14;  // 警告色基准
+$warning-7: #d48806;
+$warning-8: #ad6800;
+$warning-9: #874d00;
+$warning-10: #613400;
+
+// 危险色 - 红色系
+$danger-1: #fff2f0;
+$danger-2: #ffccc7;
+$danger-3: #ffa39e;
+$danger-4: #ff7875;
+$danger-5: #ff4d4f;
+$danger-6: #f5222d;  // 危险色基准
+$danger-7: #cf1322;
+$danger-8: #a8071a;
+$danger-9: #820014;
+$danger-10: #5c0011;
+
+// 信息色 - 蓝色系
+$info-1: #e6f4ff;
+$info-2: #bae0ff;
+$info-3: #91caff;
+$info-4: #69b1ff;
+$info-5: #4096ff;
+$info-6: #1677ff;  // 信息色基准
+$info-7: #0958d9;
+$info-8: #003eb3;
+$info-9: #002c8c;
+$info-10: #001d66;
+
+// 中性灰 - 文字层级
+$gray-1: #ffffff;
+$gray-2: #fafafa;
+$gray-3: #f5f5f5;
+$gray-4: #f0f0f0;
+$gray-5: #d9d9d9;
+$gray-6: #bfbfbf;
+$gray-7: #8c8c8c;
+$gray-8: #595959;
+$gray-9: #434343;
+$gray-10: #262626;
+$gray-11: #1f1f1f;
+$gray-12: #141414;
+$gray-13: #000000;
+
+// ============================================================
+// 语义化颜色变量
+// ============================================================
+
+// 主色系
+$color-primary: $primary-6;
+$color-primary-light: $primary-4;
+$color-primary-dark: $primary-8;
+$color-primary-bg: $primary-1;
+$color-primary-hover: $primary-5;
+$color-primary-active: $primary-7;
+
+// 状态色系
+$color-success: $success-6;
+$color-success-bg: $success-1;
+$color-success-border: $success-2;
+
+$color-warning: $warning-6;
+$color-warning-bg: $warning-1;
+$color-warning-border: $warning-2;
+
+$color-danger: $danger-6;
+$color-danger-bg: $danger-1;
+$color-danger-border: $danger-2;
+
+$color-info: $info-6;
+$color-info-bg: $info-1;
+$color-info-border: $info-2;
+
+// 文字色系
+$color-text-primary: $gray-10;
+$color-text-regular: $gray-8;
+$color-text-secondary: $gray-7;
+$color-text-placeholder: $gray-6;
+$color-text-disabled: $gray-5;
+
+// 边框色
+$color-border-base: $gray-5;
+$color-border-light: $gray-4;
+$color-border-lighter: $gray-3;
+$color-border-dark: $gray-6;
+
+// 背景色
+$color-bg-container: $gray-1;
+$color-bg-layout: $gray-3;
+$color-bg-elevated: $gray-1;
+$color-bg-spotlight: $gray-9;
+$color-bg-mask: rgba(0, 0, 0, 0.45);
+
+// ============================================================
+// 布局尺寸
+// ============================================================
+
+// 侧边栏
+$sidebar-width: 240px;
+$sidebar-collapsed-width: 80px;
+$sidebar-bg: #001529;
+$sidebar-bg-dark: #000d1a;
+
+// 顶部导航
+$header-height: 56px;
+$header-bg: $gray-1;
+
+// 内容区
+$main-content-bg: #f5f7fa;
+$page-padding: 24px;
+
+// 响应式断点
+$breakpoint-xs: 480px;
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+$breakpoint-xxl: 1600px;
+
+// ============================================================
+// 圆角系统
+// ============================================================
+
+$radius-xs: 4px;
+$radius-sm: 6px;
+$radius-base: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-full: 9999px;
+
+// ============================================================
+// 间距系统 (8px 网格)
+// ============================================================
+
+$spacing-1: 4px;
+$spacing-2: 8px;
+$spacing-3: 12px;
+$spacing-4: 16px;
+$spacing-5: 20px;
+$spacing-6: 24px;
+$spacing-8: 32px;
+$spacing-10: 40px;
+$spacing-12: 48px;
+$spacing-16: 64px;
+$spacing-20: 80px;
+
+// ============================================================
+// 阴影系统
+// ============================================================
+
+// 基础阴影
+$shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02),
+  0 2px 4px 0 rgba(0, 0, 0, 0.02);
+$shadow-2: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 2px 8px -1px rgba(0, 0, 0, 0.03),
+  0 4px 12px 0 rgba(0, 0, 0, 0.03);
+$shadow-3: 0 4px 8px 0 rgba(0, 0, 0, 0.06), 0 4px 16px -2px rgba(0, 0, 0, 0.04),
+  0 8px 24px 0 rgba(0, 0, 0, 0.04);
+$shadow-4: 0 8px 16px 0 rgba(0, 0, 0, 0.08), 0 8px 24px -4px rgba(0, 0, 0, 0.06),
+  0 16px 48px 0 rgba(0, 0, 0, 0.06);
+
+// 功能阴影
+$shadow-card: $shadow-2;
+$shadow-card-hover: $shadow-3;
+$shadow-dropdown: $shadow-3;
+$shadow-popover: $shadow-3;
+$shadow-modal: $shadow-4;
+$shadow-header: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+// ============================================================
+// 字体系统
+// ============================================================
+
+// 字体家族
+$font-family-base:
+  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
+  'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+$font-family-code: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+
+// 字号
+$font-size-xs: 12px;
+$font-size-sm: 13px;
+$font-size-base: 14px;
+$font-size-md: 15px;
+$font-size-lg: 16px;
+$font-size-xl: 18px;
+$font-size-2xl: 20px;
+$font-size-3xl: 24px;
+$font-size-4xl: 28px;
+$font-size-5xl: 32px;
+
+// 字重
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// 行高
+$line-height-xs: 1.2;
+$line-height-sm: 1.4;
+$line-height-base: 1.5715;
+$line-height-lg: 1.8;
+
+// ============================================================
+// 动画系统
+// ============================================================
+
+// 动画时长
+$duration-fast: 0.1s;
+$duration-normal: 0.2s;
+$duration-slow: 0.3s;
+$duration-slower: 0.5s;
+
+// 动画缓动
+$ease-base: cubic-bezier(0.2, 0, 0, 1);
+$ease-in: cubic-bezier(0.4, 0, 1, 1);
+$ease-out: cubic-bezier(0, 0, 0.2, 1);
+$ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+// 动画函数
+$transition-base: all $duration-normal $ease-base;
+$transition-fast: all $duration-fast $ease-base;
+$transition-slow: all $duration-slow $ease-base;
+
+// ============================================================
+// Z-Index 层级
+// ============================================================
+
+$z-index-dropdown: 1050;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1030;
+$z-index-tooltip: 1060;
+$z-index-drawer: 1055;
+
+// ============================================================
+// 过渡色渐变
+// ============================================================
+
+// 背景渐变
+$gradient-primary: linear-gradient(135deg, $primary-4 0%, $primary-6 100%);
+$gradient-success: linear-gradient(135deg, $success-4 0%, $success-6 100%);
+$gradient-warning: linear-gradient(135deg, $warning-4 0%, $warning-6 100%);
+$gradient-danger: linear-gradient(135deg, $danger-4 0%, $danger-6 100%);
+$gradient-info: linear-gradient(135deg, $info-4 0%, $info-6 100%);
+
+// 登录页背景
+$gradient-login-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$gradient-login-card: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
