@@ -2,9 +2,9 @@
   <aside :class="['app-sidebar', { collapsed }]">
     <!-- Logo区域 -->
     <div class="sidebar-logo">
-      <el-icon :size="28" class="logo-icon"><Monitor /></el-icon>
+      <el-icon :size="24" class="logo-icon"><Monitor /></el-icon>
       <transition name="fade">
-        <span v-show="!collapsed" class="logo-text">PVE 管理平台</span>
+        <span v-show="!collapsed" class="logo-text">PVE Cloud</span>
       </transition>
     </div>
 
@@ -104,7 +104,6 @@
           <DArrowLeft v-if="!collapsed" />
           <DArrowRight v-else />
         </el-icon>
-        <span v-show="!collapsed">{{ collapsed ? '展开' : '收起' }}</span>
       </el-button>
     </div>
   </aside>
@@ -122,7 +121,6 @@ import {
   Setting,
   DArrowLeft,
   DArrowRight,
-  Connection,
   Files,
   Odometer,
   Key,
@@ -162,11 +160,13 @@ function handleNodeChange(host: string) {
 .app-sidebar {
   width: $sidebar-width;
   min-width: $sidebar-width;
+  height: 100vh;
   background: $sidebar-bg;
   display: flex;
   flex-direction: column;
-  transition: all $duration-slow $ease-in-out;
+  transition: width $duration-slow $ease-base;
   overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 
   &.collapsed {
     width: $sidebar-collapsed-width;
@@ -188,12 +188,13 @@ function handleNodeChange(host: string) {
   justify-content: center;
   height: $header-height;
   padding: 0 $spacing-4;
-  gap: $spacing-3;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: $spacing-2;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   color: #fff;
   font-weight: $font-weight-semibold;
-  font-size: $font-size-lg;
+  font-size: $font-size-base;
   white-space: nowrap;
+  background: rgba(0, 0, 0, 0.1);
 
   .logo-icon {
     color: $color-primary;
@@ -201,6 +202,7 @@ function handleNodeChange(host: string) {
   }
 
   .logo-text {
+    letter-spacing: 0.5px;
     transition: opacity $duration-normal $ease-base;
   }
 }
@@ -210,17 +212,18 @@ function handleNodeChange(host: string) {
 // ============================================================
 
 .node-selector {
-  padding: $spacing-4 $spacing-3;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: $spacing-3 $spacing-3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
   :deep(.node-select) {
     .el-input__wrapper {
-      background: rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.05);
       box-shadow: none;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: $radius-sm;
 
       &:hover {
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
       }
 
       &.is-focus {
@@ -233,7 +236,7 @@ function handleNodeChange(host: string) {
     }
 
     .el-input__placeholder {
-      color: rgba(255, 255, 255, 0.45);
+      color: rgba(255, 255, 255, 0.4);
     }
   }
 }
@@ -264,22 +267,38 @@ function handleNodeChange(host: string) {
 }
 
 .compact-nav-item {
-  width: 48px;
+  width: $sidebar-collapsed-width;
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: $radius-sm;
-  color: rgba(255, 255, 255, 0.55);
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.5);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background $transition-fast;
+  }
 
   &:hover {
     color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   &.active {
     color: #fff;
-    background: $color-primary;
+    background: rgba(255, 255, 255, 0.08);
+
+    &::before {
+      background: $color-primary;
+    }
   }
 }
 
@@ -288,18 +307,20 @@ function handleNodeChange(host: string) {
 // ============================================================
 
 .sidebar-footer {
-  padding: $spacing-3;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: $spacing-2;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.1);
 
   .collapse-btn {
     width: 100%;
-    color: rgba(255, 255, 255, 0.65);
+    height: 40px;
+    color: rgba(255, 255, 255, 0.5);
     justify-content: center;
-    gap: $spacing-2;
+    border-radius: $radius-sm;
 
     &:hover {
       color: rgba(255, 255, 255, 0.85);
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
     }
   }
 }

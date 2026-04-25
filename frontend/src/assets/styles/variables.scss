@@ -1,86 +1,91 @@
 /**
- * PVE 管理面板设计令牌系统
- * 基于中国主流企业软件（阿里云、腾讯云）设计规范
- * 采用 8px 网格系统，确保布局和谐统一
+ * PVE 私有云管理平台设计令牌系统
+ * 基于 ui-ux-pro-max 设计系统推荐
+ * 参考 vSphere、VMware Cloud、OpenStack Horizon、Proxmox 等本地私有云平台设计规范
+ * 采用 Data-Dense Dashboard 模式：高密度数据展示、最小化留白、效率优先
  */
 
 // ============================================================
-// 颜色系统 - 色板定义
+// 颜色系统 - 本地私有云管理风格
+// 主色：深钴蓝（Cobalt Blue）- 传达稳定、专业、可信赖
+// 辅助色：翡翠绿（Emerald）- 表示健康、运行中状态
+// 强调色：琥珀橙（Amber）- 用于重要操作和警告
+// 遵循 vSphere / VMware Cloud / OpenStack 设计语言
 // ============================================================
 
-// 主色调 - 靛蓝色系（符合中国企业软件审美）
-$primary-1: #e8f3ff;
-$primary-2: #bae7ff;
-$primary-3: #91caff;
-$primary-4: #69b1ff;
-$primary-5: #4096ff;
-$primary-6: #1677ff;  // 主色基准
-$primary-7: #0958d9;
-$primary-8: #003eb3;
-$primary-9: #002c8c;
-$primary-10: #001d66;
+// 主色调 - 深钴蓝（本地私有云管理平台风格）
+$primary-1: #f0f5ff;
+$primary-2: #d6e4ff;
+$primary-3: #adc6ff;
+$primary-4: #85a5ff;
+$primary-5: #597ef7;
+$primary-6: #1d39c4;  // 主色基准 - 深钴蓝
+$primary-7: #10239e;
+$primary-8: #061178;
+$primary-9: #030852;
+$primary-10: #00052c;
 
-// 成功色 - 绿色系
-$success-1: #f6ffed;
-$success-2: #d9f7be;
-$success-3: #b7eb8f;
-$success-4: #95de64;
-$success-5: #73d13d;
-$success-6: #52c41a;  // 成功色基准
-$success-7: #389e0d;
-$success-8: #237804;
-$success-9: #135200;
-$success-10: #092b00;
+// 成功色 - 翡翠绿（健康运行状态）
+$success-1: #f0fff4;
+$success-2: #c6f6d5;
+$success-3: #9ae6b4;
+$success-4: #68d391;
+$success-5: #38b2ac;
+$success-6: #10b981;  // 成功色基准 - 翡翠绿
+$success-7: #059669;
+$success-8: #047857;
+$success-9: #065f46;
+$success-10: #064e3b;
 
-// 警告色 - 橙色系
-$warning-1: #fffbe6;
-$warning-2: #fff1b8;
-$warning-3: #ffe58f;
-$warning-4: #ffd666;
-$warning-5: #ffc53d;
-$warning-6: #faad14;  // 警告色基准
-$warning-7: #d48806;
-$warning-8: #ad6800;
-$warning-9: #874d00;
-$warning-10: #613400;
+// 警告色 - 琥珀橙
+$warning-1: #fffbeb;
+$warning-2: #fef3c7;
+$warning-3: #fde68a;
+$warning-4: #fbbf24;
+$warning-5: #f59e0b;
+$warning-6: #d97706;  // 警告色基准 - 琥珀橙
+$warning-7: #b45309;
+$warning-8: #92400e;
+$warning-9: #78350f;
+$warning-10: #451a03;
 
-// 危险色 - 红色系
-$danger-1: #fff2f0;
-$danger-2: #ffccc7;
-$danger-3: #ffa39e;
-$danger-4: #ff7875;
-$danger-5: #ff4d4f;
-$danger-6: #f5222d;  // 危险色基准
-$danger-7: #cf1322;
-$danger-8: #a8071a;
-$danger-9: #820014;
-$danger-10: #5c0011;
+// 危险色 - 深红
+$danger-1: #fef2f2;
+$danger-2: #fecaca;
+$danger-3: #fca5a5;
+$danger-4: #f87171;
+$danger-5: #ef4444;
+$danger-6: #dc2626;  // 危险色基准 - 深红
+$danger-7: #b91c1c;
+$danger-8: #991b1b;
+$danger-9: #7f1d1d;
+$danger-10: #450a0a;
 
-// 信息色 - 蓝色系
-$info-1: #e6f4ff;
-$info-2: #bae0ff;
-$info-3: #91caff;
-$info-4: #69b1ff;
-$info-5: #4096ff;
-$info-6: #1677ff;  // 信息色基准
-$info-7: #0958d9;
-$info-8: #003eb3;
-$info-9: #002c8c;
-$info-10: #001d66;
+// 信息色 - 天蓝
+$info-1: #eff6ff;
+$info-2: #bfdbfe;
+$info-3: #93c5fd;
+$info-4: #60a5fa;
+$info-5: #3b82f6;
+$info-6: #2563eb;  // 信息色基准 - 天蓝
+$info-7: #1d4ed8;
+$info-8: #1e40af;
+$info-9: #1e3a8a;
+$info-10: #172554;
 
-// 中性灰 - 文字层级
+// 中性灰 - 文字层级（更冷更专业的色调）
 $gray-1: #ffffff;
-$gray-2: #fafafa;
-$gray-3: #f5f5f5;
-$gray-4: #f0f0f0;
-$gray-5: #d9d9d9;
-$gray-6: #bfbfbf;
-$gray-7: #8c8c8c;
-$gray-8: #595959;
-$gray-9: #434343;
-$gray-10: #262626;
-$gray-11: #1f1f1f;
-$gray-12: #141414;
+$gray-2: #f8fafc;
+$gray-3: #f1f5f9;
+$gray-4: #e2e8f0;
+$gray-5: #cbd5e1;
+$gray-6: #94a3b8;
+$gray-7: #64748b;
+$gray-8: #475569;
+$gray-9: #334155;
+$gray-10: #1e293b;
+$gray-11: #0f172a;
+$gray-12: #020617;
 $gray-13: #000000;
 
 // ============================================================
@@ -120,35 +125,35 @@ $color-text-placeholder: $gray-6;
 $color-text-disabled: $gray-5;
 
 // 边框色
-$color-border-base: $gray-5;
-$color-border-light: $gray-4;
-$color-border-lighter: $gray-3;
-$color-border-dark: $gray-6;
+$color-border-base: $gray-4;
+$color-border-light: $gray-3;
+$color-border-lighter: $gray-2;
+$color-border-dark: $gray-5;
 
 // 背景色
 $color-bg-container: $gray-1;
-$color-bg-layout: $gray-3;
+$color-bg-layout: $gray-2;
 $color-bg-elevated: $gray-1;
-$color-bg-spotlight: $gray-9;
-$color-bg-mask: rgba(0, 0, 0, 0.45);
+$color-bg-spotlight: $gray-10;
+$color-bg-mask: rgba(15, 23, 42, 0.6);
 
 // ============================================================
-// 布局尺寸
+// 布局尺寸 - 高密度数据展示（Data-Dense Dashboard）
 // ============================================================
 
-// 侧边栏
-$sidebar-width: 240px;
-$sidebar-collapsed-width: 80px;
-$sidebar-bg: #001529;
-$sidebar-bg-dark: #000d1a;
+// 侧边栏 - 深色主题（vSphere 风格）
+$sidebar-width: 260px;
+$sidebar-collapsed-width: 64px;
+$sidebar-bg: #0f172a;       // 深石板蓝
+$sidebar-bg-dark: #020617;  // 更深的暗色
 
-// 顶部导航
+// 顶部导航 - 白色简洁
 $header-height: 56px;
 $header-bg: $gray-1;
 
-// 内容区
-$main-content-bg: #f5f7fa;
-$page-padding: 24px;
+// 内容区 - 降低背景对比度
+$main-content-bg: $gray-2;
+$page-padding: 16px;  // 减小内边距以增加数据密度
 
 // 响应式断点
 $breakpoint-xs: 480px;
@@ -159,19 +164,19 @@ $breakpoint-xl: 1200px;
 $breakpoint-xxl: 1600px;
 
 // ============================================================
-// 圆角系统
+// 圆角系统 - 更紧凑的圆角（vSphere 风格）
 // ============================================================
 
-$radius-xs: 4px;
-$radius-sm: 6px;
-$radius-base: 8px;
-$radius-md: 12px;
-$radius-lg: 16px;
-$radius-xl: 24px;
+$radius-xs: 2px;
+$radius-sm: 4px;
+$radius-base: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
 $radius-full: 9999px;
 
 // ============================================================
-// 间距系统 (8px 网格)
+// 间距系统 (4px 基础网格，更紧凑)
 // ============================================================
 
 $spacing-1: 4px;
@@ -187,48 +192,44 @@ $spacing-16: 64px;
 $spacing-20: 80px;
 
 // ============================================================
-// 阴影系统
+// 阴影系统 - 更微妙的阴影（专业风格）
 // ============================================================
 
 // 基础阴影
-$shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02),
-  0 2px 4px 0 rgba(0, 0, 0, 0.02);
-$shadow-2: 0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 2px 8px -1px rgba(0, 0, 0, 0.03),
-  0 4px 12px 0 rgba(0, 0, 0, 0.03);
-$shadow-3: 0 4px 8px 0 rgba(0, 0, 0, 0.06), 0 4px 16px -2px rgba(0, 0, 0, 0.04),
-  0 8px 24px 0 rgba(0, 0, 0, 0.04);
-$shadow-4: 0 8px 16px 0 rgba(0, 0, 0, 0.08), 0 8px 24px -4px rgba(0, 0, 0, 0.06),
-  0 16px 48px 0 rgba(0, 0, 0, 0.06);
+$shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-2: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+$shadow-3: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+$shadow-4: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 
 // 功能阴影
-$shadow-card: $shadow-2;
-$shadow-card-hover: $shadow-3;
+$shadow-card: $shadow-1;
+$shadow-card-hover: $shadow-2;
 $shadow-dropdown: $shadow-3;
 $shadow-popover: $shadow-3;
 $shadow-modal: $shadow-4;
-$shadow-header: 0 2px 8px rgba(0, 0, 0, 0.06);
+$shadow-header: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
 // ============================================================
-// 字体系统
+// 字体系统 - 专业等宽混合
 // ============================================================
 
-// 字体家族
+// 字体家族 - 加入 Fira Sans 作为 ui-ux-pro-max 推荐
 $font-family-base:
-  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
-  'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-$font-family-code: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+  'Noto Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+$font-family-code: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 
-// 字号
-$font-size-xs: 12px;
-$font-size-sm: 13px;
-$font-size-base: 14px;
-$font-size-md: 15px;
-$font-size-lg: 16px;
-$font-size-xl: 18px;
-$font-size-2xl: 20px;
-$font-size-3xl: 24px;
-$font-size-4xl: 28px;
-$font-size-5xl: 32px;
+// 字号 - 更紧凑
+$font-size-xs: 11px;
+$font-size-sm: 12px;
+$font-size-base: 13px;
+$font-size-md: 14px;
+$font-size-lg: 15px;
+$font-size-xl: 16px;
+$font-size-2xl: 18px;
+$font-size-3xl: 20px;
+$font-size-4xl: 24px;
+$font-size-5xl: 28px;
 
 // 字重
 $font-weight-light: 300;
@@ -237,24 +238,24 @@ $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
-// 行高
+// 行高 - 更紧凑
 $line-height-xs: 1.2;
-$line-height-sm: 1.4;
-$line-height-base: 1.5715;
-$line-height-lg: 1.8;
+$line-height-sm: 1.3;
+$line-height-base: 1.4;
+$line-height-lg: 1.6;
 
 // ============================================================
 // 动画系统
 // ============================================================
 
-// 动画时长
+// 动画时长 - 更快响应
 $duration-fast: 0.1s;
-$duration-normal: 0.2s;
-$duration-slow: 0.3s;
-$duration-slower: 0.5s;
+$duration-normal: 0.15s;
+$duration-slow: 0.2s;
+$duration-slower: 0.3s;
 
 // 动画缓动
-$ease-base: cubic-bezier(0.2, 0, 0, 1);
+$ease-base: cubic-bezier(0.4, 0, 0.2, 1);
 $ease-in: cubic-bezier(0.4, 0, 1, 1);
 $ease-out: cubic-bezier(0, 0, 0.2, 1);
 $ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
@@ -278,16 +279,16 @@ $z-index-tooltip: 1060;
 $z-index-drawer: 1055;
 
 // ============================================================
-// 过渡色渐变
+// 渐变
 // ============================================================
 
 // 背景渐变
-$gradient-primary: linear-gradient(135deg, $primary-4 0%, $primary-6 100%);
-$gradient-success: linear-gradient(135deg, $success-4 0%, $success-6 100%);
-$gradient-warning: linear-gradient(135deg, $warning-4 0%, $warning-6 100%);
-$gradient-danger: linear-gradient(135deg, $danger-4 0%, $danger-6 100%);
-$gradient-info: linear-gradient(135deg, $info-4 0%, $info-6 100%);
+$gradient-primary: linear-gradient(135deg, $primary-5 0%, $primary-6 100%);
+$gradient-success: linear-gradient(135deg, $success-5 0%, $success-6 100%);
+$gradient-warning: linear-gradient(135deg, $warning-5 0%, $warning-6 100%);
+$gradient-danger: linear-gradient(135deg, $danger-5 0%, $danger-6 100%);
+$gradient-info: linear-gradient(135deg, $info-5 0%, $info-6 100%);
 
-// 登录页背景
-$gradient-login-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-$gradient-login-card: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+// 登录页背景 - 深钴蓝渐变（私有云管理风格）
+$gradient-login-bg: linear-gradient(135deg, #0f172a 0%, #1d39c4 50%, #0f172a 100%);
+$gradient-login-card: rgba(255, 255, 255, 0.95);
