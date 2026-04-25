@@ -1,7 +1,8 @@
 /**
- * PVE 管理面板全局样式
- * 包含 CSS Reset、基础样式、工具类、Element Plus 组件覆盖
- * 基于中国企业软件设计规范（阿里云、腾讯云风格）
+ * PVE 私有云管理平台全局样式
+ * 基于 ui-ux-pro-max 设计系统
+ * 参考 vSphere、VMware Cloud、OpenStack Horizon 设计规范
+ * 采用 Data-Dense Dashboard 模式：高密度数据展示、最小化留白、效率优先
  */
 
 @use './variables' as *;
@@ -49,11 +50,11 @@ a {
 }
 
 // ============================================================
-// Element Plus 组件样式覆盖 (全局，不使用 :deep())
+// Element Plus 组件样式覆盖 (vSphere 私有云风格)
 // ============================================================
 
 .el-card {
-  border-radius: $radius-base;
+  border-radius: $radius-sm;
   border: 1px solid $color-border-light;
   box-shadow: $shadow-card;
   transition: $transition-base;
@@ -63,14 +64,15 @@ a {
   }
 
   .el-card__header {
-    padding: $spacing-4 $spacing-6;
+    padding: $spacing-3 $spacing-4;
     border-bottom: 1px solid $color-border-light;
-    font-weight: $font-weight-medium;
-    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    font-size: $font-size-md;
+    background: $gray-2;
   }
 
   .el-card__body {
-    padding: $spacing-6;
+    padding: $spacing-4;
   }
 }
 
@@ -78,16 +80,37 @@ a {
   border-radius: $radius-sm;
   font-weight: $font-weight-medium;
   transition: $transition-base;
+  padding: $spacing-2 $spacing-4;
+  font-size: $font-size-sm;
+}
+
+.el-button--primary {
+  background: $color-primary;
+  border-color: $color-primary;
+
+  &:hover, &:focus {
+    background: $color-primary-hover;
+    border-color: $color-primary-hover;
+  }
 }
 
 .el-table {
   border-radius: $radius-sm;
   overflow: hidden;
+  font-size: $font-size-sm;
 
   th.el-table__cell {
     background-color: $gray-2;
     font-weight: $font-weight-semibold;
     color: $color-text-primary;
+    padding: $spacing-2 $spacing-3;
+    font-size: $font-size-xs;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td.el-table__cell {
+    padding: $spacing-2 $spacing-3;
   }
 
   .el-table__row {
@@ -103,10 +126,21 @@ a {
   .el-input__wrapper {
     border-radius: $radius-sm;
     transition: $transition-base;
+    padding: $spacing-2 $spacing-3;
 
     &:hover {
       box-shadow: 0 0 0 1px $color-primary-light inset;
     }
+  }
+
+  .el-input__inner {
+    font-size: $font-size-sm;
+  }
+}
+
+.el-select {
+  .el-input__wrapper {
+    padding: $spacing-2 $spacing-3;
   }
 }
 
@@ -116,6 +150,9 @@ a {
   .el-menu-item {
     border-radius: $radius-sm;
     margin: $spacing-1 $spacing-2;
+    height: 40px;
+    line-height: 40px;
+    font-size: $font-size-sm;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);
@@ -130,6 +167,9 @@ a {
   .el-sub-menu__title {
     border-radius: $radius-sm;
     margin: $spacing-1 $spacing-2;
+    height: 40px;
+    line-height: 40px;
+    font-size: $font-size-sm;
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);
@@ -142,8 +182,14 @@ a {
   box-shadow: $shadow-modal;
 
   .el-dialog__header {
-    padding: $spacing-6;
+    padding: $spacing-4 $spacing-6;
     border-bottom: 1px solid $color-border-light;
+    background: $gray-2;
+  }
+
+  .el-dialog__title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
   }
 
   .el-dialog__body {
@@ -163,6 +209,7 @@ a {
 
   .el-dropdown-menu__item {
     padding: $spacing-2 $spacing-6;
+    font-size: $font-size-sm;
     transition: $transition-fast;
 
     &:hover {
@@ -176,7 +223,8 @@ a {
   border-radius: $radius-xs;
   border: none;
   font-weight: $font-weight-medium;
-  padding: 0 $spacing-3;
+  padding: 0 $spacing-2;
+  font-size: $font-size-xs;
 }
 
 .el-tag--success {
@@ -202,6 +250,7 @@ a {
 .el-progress .el-progress-bar__outer {
   border-radius: $radius-full;
   background-color: $gray-3;
+  height: 6px;
 }
 
 .el-progress .el-progress-bar__inner {
@@ -209,17 +258,25 @@ a {
   transition: width $duration-slow $ease-out;
 }
 
-.el-pagination .el-pager li {
-  border-radius: $radius-xs;
-  transition: $transition-fast;
+.el-pagination {
+  padding: $spacing-3 0;
+  
+  .el-pager li {
+    border-radius: $radius-xs;
+    transition: $transition-fast;
+    min-width: 28px;
+    height: 28px;
+    line-height: 28px;
+    font-size: $font-size-sm;
 
-  &.is-active {
-    background-color: $color-primary;
-    color: #fff;
-  }
+    &.is-active {
+      background-color: $color-primary;
+      color: #fff;
+    }
 
-  &:hover {
-    color: $color-primary;
+    &:hover {
+      color: $color-primary;
+    }
   }
 }
 
@@ -236,15 +293,16 @@ a {
 
 .el-segmented .el-segmented__item {
   padding: $spacing-2 $spacing-4;
+  font-size: $font-size-sm;
 }
 
 // ============================================================
-// 滚动条样式
+// 滚动条样式 - vSphere 风格
 // ============================================================
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -352,31 +410,104 @@ a {
 .transition-fast { transition: $transition-fast; }
 
 // ============================================================
-// 页面内容容器
+// 页面内容容器 - Data-Dense 布局
 // ============================================================
 
 .page-container {
   padding: $page-padding;
   min-height: 100%;
   overflow: auto;
+  background: $color-bg-layout;
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: $spacing-6;
+  margin-bottom: $spacing-4;
+  padding-bottom: $spacing-3;
+  border-bottom: 1px solid $color-border-light;
 
   .page-title {
-    font-size: $font-size-2xl;
+    font-size: $font-size-xl;
     font-weight: $font-weight-semibold;
     color: $color-text-primary;
+    letter-spacing: -0.3px;
   }
 
   .page-description {
     margin-top: $spacing-1;
     color: $color-text-secondary;
-    font-size: $font-size-base;
+    font-size: $font-size-sm;
+  }
+}
+
+// 数据密度优化卡片
+.data-card {
+  background: $color-bg-container;
+  border-radius: $radius-sm;
+  border: 1px solid $color-border-light;
+  box-shadow: $shadow-card;
+  padding: $spacing-4;
+  transition: $transition-base;
+
+  &:hover {
+    box-shadow: $shadow-card-hover;
+  }
+}
+
+// 统计卡片 - 紧凑风格
+.stat-card {
+  @extend .data-card;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-3;
+
+  .stat-value {
+    font-size: $font-size-3xl;
+    font-weight: $font-weight-bold;
+    color: $color-text-primary;
+    line-height: 1;
+    margin-bottom: $spacing-1;
+  }
+
+  .stat-label {
+    font-size: $font-size-xs;
+    color: $color-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: $font-weight-medium;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $font-size-xl;
+
+    &.stat-icon--primary {
+      background: $color-primary-bg;
+      color: $color-primary;
+    }
+
+    &.stat-icon--success {
+      background: $color-success-bg;
+      color: $color-success;
+    }
+
+    &.stat-icon--warning {
+      background: $color-warning-bg;
+      color: $color-warning;
+    }
+
+    &.stat-icon--danger {
+      background: $color-danger-bg;
+      color: $color-danger;
+    }
   }
 }
 
@@ -386,19 +517,23 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: $spacing-20;
+  padding: $spacing-16;
   color: $color-text-secondary;
+  background: $color-bg-container;
+  border-radius: $radius-sm;
+  border: 1px dashed $color-border-base;
 
   .empty-icon {
-    font-size: 64px;
+    font-size: 48px;
     color: $gray-6;
-    margin-bottom: $spacing-4;
+    margin-bottom: $spacing-3;
   }
 
   .empty-title {
-    font-size: $font-size-lg;
+    font-size: $font-size-base;
     color: $color-text-regular;
     margin-bottom: $spacing-2;
+    font-weight: $font-weight-medium;
   }
 }
 
@@ -414,7 +549,7 @@ a {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -425,7 +560,7 @@ a {
 @keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-12px);
   }
   to {
     opacity: 1;
