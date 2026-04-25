@@ -101,3 +101,59 @@ export async function deleteStorage(
 ): Promise<string> {
   return del<string>(`/pve/nodes/${node}/storage/${storage}`, options)
 }
+
+/**
+ * 获取存储详情（包含配置信息）
+ * @param node 节点名称
+ * @param storage 存储名称
+ * @param options 查询选项
+ */
+export async function getStorageDetail(
+  node: string,
+  storage: string,
+  options?: QueryOptions,
+): Promise<Storage> {
+  return get<Storage>(`/pve/nodes/${node}/storage/${storage}`, undefined, options)
+}
+
+/**
+ * 获取存储内容列表（别名，兼容旧代码）
+ */
+export async function getStorageContents(
+  node: string,
+  storage: string,
+  params?: { content?: string; vmid?: number; enabled?: number },
+  options?: QueryOptions,
+): Promise<StorageContent[]> {
+  return getStorageContent(node, storage, params, options)
+}
+
+/**
+ * 下载存储文件
+ * @param node 节点名称
+ * @param storage 存储名称
+ * @param volume 卷标识
+ * @param options 查询选项
+ */
+export async function downloadStorageFile(
+  node: string,
+  storage: string,
+  volume: string,
+  options?: QueryOptions,
+): Promise<Blob> {
+  return get<Blob>(
+    `/pve/nodes/${node}/storage/${storage}/content/${volume}/download`,
+    undefined,
+    options,
+  )
+}
+
+/**
+ * 获取集群存储列表
+ * @param options 查询选项
+ */
+export async function getClusterStorages(
+  options?: QueryOptions,
+): Promise<Storage[]> {
+  return get<Storage[]>('/pve/cluster/storage', undefined, options)
+}
