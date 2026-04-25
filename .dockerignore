@@ -1,0 +1,64 @@
+# ============================================================
+# Docker 构建忽略文件
+# 列出在构建 Docker 镜像时应排除的文件和目录
+# ============================================================
+
+# Git 相关
+.git/
+.gitignore
+.gitattributes
+
+# 文档和说明
+*.md
+LICENSE
+PLAN.md
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 前端依赖和构建
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/tsconfig.*.tsbuildinfo
+
+# 后端依赖和构建
+backend/vendor/
+backend/*.exe
+backend/*.dll
+backend/*.so
+
+# 日志文件
+*.log
+logs/
+
+# 配置文件（敏感信息不应打包进镜像）
+config.yaml
+.env
+.env.local
+.env.*.local
+
+# Docker 相关（自身不需要打包）
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# 测试文件
+*_test.go
+__tests__/
+*.test.ts
+*.spec.ts
+coverage/
+.nyc_output/
+
+# CI/CD 配置
+.github/
+.gitlab-ci.yml

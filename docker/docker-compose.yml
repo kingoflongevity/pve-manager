@@ -1,0 +1,152 @@
+# ============================================================
+# PVE Web Management Panel - Docker Compose 配置
+# ============================================================
+# 使用说明:
+#   启动服务:     docker compose up -d
+#   查看日志:     docker compose logs -f
+#   停止服务:     docker compose down
+#   完整重建:     docker compose up -d --build
+#   仅构建镜像:   docker compose build
+# ============================================================
+
+services:
+  # ----------------------------------------------------------
+  # PVE 管理面板主服务
+  # ----------------------------------------------------------
+  pve-manager:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: production
+    image: pve-webui:latest
+    container_name: pve-webui
+    restart: unless-stopped
+
+    # 端口映射 (宿主机端口:容器端口)
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_PATH=/app/config/config.yaml
+
+    # 挂载配置和日志目录
+    volumes:
+      # 配置文件目录（将 config.yaml 放在此目录下）
+      - ./config:/app/config:ro
+      # 日志目录（持久化日志文件）
+      - ./logs:/app/logs
+      # 可选：挂载 TLS 证书
+      # - ./certs:/app/certs:ro
+
+    # 资源限制（防止内存泄漏导致宿主机崩溃）
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+    # 日志驱动配置（限制日志文件大小，防止磁盘占满）
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # 依赖服务
+    depends_on:
+      - redis
+
+    # 网络配置
+    networks:
+      - pve-net
+
+    # 健康检查（复用 Dockerfile 中的配置）
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------
+  # Redis 缓存服务（可选，用于缓存 PVE API 响应）
+  # ----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: pve-redis
+    restart: unless-stopped
+
+    # 端口映射（生产环境建议注释掉，仅内部网络访问）
+    # ports:
+    #   - "${REDIS_PORT:-6379}:6379"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+
+    # 持久化数据
+    volumes:
+      - redis-data:/data
+
+    # Redis 启动命令（启用 AOF 持久化，设置内存上限）
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 100
+
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 64M
+
+    # 日志配置
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+    # 网络配置
+    networks:
+      - pve-net
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+# ============================================================
+# 数据卷定义
+# ============================================================
+volumes:
+  # Redis 数据持久化
+  redis-data:
+    driver: local
+
+# ============================================================
+# 网络定义
+# ============================================================
+networks:
+  # 内部网络，用于服务间通信
+  pve-net:
+    driver: bridge
+    # 可选：指定子网和网关
+    # ipam:
+    #   config:
+    #     - subnet: 172.20.0.0/16
+    #       gateway: 172.20.0.1
