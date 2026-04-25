@@ -9,76 +9,62 @@
     </div>
 
     <!-- 节点选择器 -->
-    <div class="node-selector">
-      <el-select
-        v-model="selectedNode"
-        :placeholder="t('layout.selectNode')"
-        size="small"
-        class="node-select"
-        @change="handleNodeChange"
-      >
-        <el-option
-          v-for="node in savedNodes"
-          :key="node.host"
-          :label="node.name"
-          :value="node.host"
-        />
-      </el-select>
+    <transition name="fade">
+      <div v-show="!collapsed" class="node-selector">
+        <el-select
+          v-model="selectedNode"
+          :placeholder="t('layout.selectNode')"
+          size="small"
+          class="node-select"
+          @change="handleNodeChange"
+        >
+          <el-option
+            v-for="node in savedNodes"
+            :key="node.host"
+            :label="node.name"
+            :value="node.host"
+          />
+        </el-select>
+      </div>
+    </transition>
+
+    <!-- 资源树 -->
+    <transition name="fade">
+      <div v-show="!collapsed" class="resource-tree-wrapper">
+        <ResourceTree />
+      </div>
+    </transition>
+
+    <!-- 折叠状态下的快捷导航 -->
+    <div v-show="collapsed" class="compact-nav">
+      <el-tooltip :content="t('layout.dashboard')" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: currentRoute === '/' }]"
+          @click="router.push('/')"
+        >
+          <el-icon><DataBoard /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="t('layout.backup')" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: currentRoute === '/backup' }]"
+          @click="router.push('/backup')"
+        >
+          <el-icon><Files /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="t('layout.settings')" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: currentRoute === '/settings' }]"
+          @click="router.push('/settings')"
+        >
+          <el-icon><Setting /></el-icon>
+        </el-button>
+      </el-tooltip>
     </div>
-
-    <!-- 导航菜单 -->
-    <el-menu
-      :default-active="currentRoute"
-      :collapse="collapsed"
-      :collapse-transition="true"
-      router
-      class="sidebar-menu"
-    >
-      <el-menu-item index="/">
-        <el-icon><DataBoard /></el-icon>
-        <template #title>{{ t('layout.dashboard') }}</template>
-      </el-menu-item>
-
-      <el-sub-menu index="compute">
-        <template #title>
-          <el-icon><Cpu /></el-icon>
-          <span>{{ t('layout.compute') }}</span>
-        </template>
-        <el-menu-item index="/qemu">
-          <el-icon><Monitor /></el-icon>
-          <template #title>{{ t('layout.qemu') }}</template>
-        </el-menu-item>
-        <el-menu-item index="/lxc">
-          <el-icon><Box /></el-icon>
-          <template #title>{{ t('layout.lxc') }}</template>
-        </el-menu-item>
-      </el-sub-menu>
-
-      <el-menu-item index="/storage">
-        <el-icon><FolderOpened /></el-icon>
-        <template #title>{{ t('layout.storage') }}</template>
-      </el-menu-item>
-
-      <el-menu-item index="/network" :class="{ 'coming-soon': true }">
-        <el-icon><Connection /></el-icon>
-        <template #title>{{ t('layout.network') }}</template>
-      </el-menu-item>
-
-      <el-menu-item index="/monitor" :class="{ 'coming-soon': true }">
-        <el-icon><TrendCharts /></el-icon>
-        <template #title>{{ t('layout.monitor') }}</template>
-      </el-menu-item>
-
-      <el-menu-item index="/tasks" :class="{ 'coming-soon': true }">
-        <el-icon><List /></el-icon>
-        <template #title>{{ t('layout.tasks') }}</template>
-      </el-menu-item>
-
-      <el-menu-item index="/settings">
-        <el-icon><Setting /></el-icon>
-        <template #title>{{ t('layout.settings') }}</template>
-      </el-menu-item>
-    </el-menu>
 
     <!-- 底部操作区 -->
     <div class="sidebar-footer">
@@ -98,22 +84,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import ResourceTree from '@/components/tree/ResourceTree.vue'
 import {
   Monitor,
   DataBoard,
-  Cpu,
-  Box,
-  FolderOpened,
-  Connection,
-  TrendCharts,
-  List,
   Setting,
   DArrowLeft,
   DArrowRight,
+  Connection,
+  Files,
 } from '@element-plus/icons-vue'
 
 defineProps<{
@@ -124,20 +107,20 @@ defineEmits<{
   toggle: []
 }>()
 
-const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
 
 // 当前路由路径（用于菜单高亮）
-const currentRoute = computed(() => route.path)
+const currentRoute = computed(() => router.currentRoute.value.path)
 
 // 节点选择
 const savedNodes = computed(() => authStore.savedNodes)
 const selectedNode = ref(authStore.currentNode?.host || '')
 
-// 监听节点切换
+/** 处理节点切换 */
 function handleNodeChange(host: string) {
-  const node = savedNodes.value.find(n => n.host === host)
+  const node = savedNodes.value.find((n) => n.host === host)
   if (node) {
     authStore.currentNode = node
   }
@@ -166,6 +149,10 @@ function handleNodeChange(host: string) {
   }
 }
 
+// ============================================================
+// Logo 区域
+// ============================================================
+
 .sidebar-logo {
   display: flex;
   align-items: center;
@@ -188,6 +175,10 @@ function handleNodeChange(host: string) {
     transition: opacity $duration-normal $ease-base;
   }
 }
+
+// ============================================================
+// 节点选择器
+// ============================================================
 
 .node-selector {
   padding: $spacing-4 $spacing-3;
@@ -218,40 +209,54 @@ function handleNodeChange(host: string) {
   }
 }
 
-.sidebar-menu {
+// ============================================================
+// 资源树容器
+// ============================================================
+
+.resource-tree-wrapper {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: transparent;
-  border-right: none;
-  padding: $spacing-2 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
-  :deep(.el-menu-item),
-  :deep(.el-sub-menu__title) {
-    margin: $spacing-1 $spacing-2;
-    border-radius: $radius-sm;
-    height: 44px;
+// ============================================================
+// 折叠状态下的快捷导航
+// ============================================================
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.08) !important;
-    }
+.compact-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: $spacing-4;
+  gap: $spacing-2;
+}
 
-    &.is-active {
-      background: $color-primary !important;
-      color: #fff !important;
-    }
+.compact-nav-item {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-sm;
+  color: rgba(255, 255, 255, 0.55);
 
-    .el-icon {
-      margin-right: $spacing-3;
-    }
+  &:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.08);
   }
 
-  // 未开发功能样式
-  :deep(.coming-soon) {
-    opacity: 0.5;
-    cursor: not-allowed;
+  &.active {
+    color: #fff;
+    background: $color-primary;
   }
 }
+
+// ============================================================
+// 底部操作区
+// ============================================================
 
 .sidebar-footer {
   padding: $spacing-3;
@@ -270,7 +275,10 @@ function handleNodeChange(host: string) {
   }
 }
 
+// ============================================================
 // 过渡动画
+// ============================================================
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity $duration-normal $ease-base;

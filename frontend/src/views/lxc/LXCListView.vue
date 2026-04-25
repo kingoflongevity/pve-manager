@@ -14,6 +14,9 @@
       </div>
     </div>
 
+    <!-- 批量操作栏 -->
+    <BatchOperationBar />
+
     <!-- 工具栏 -->
     <div class="toolbar">
       <div class="toolbar-left">
@@ -232,7 +235,6 @@ import {
   Plus,
   Search,
   Refresh,
-  ArrowDown,
   VideoPlay,
   VideoPause,
   RefreshRight,
@@ -241,8 +243,11 @@ import {
   CopyDocument,
 } from '@element-plus/icons-vue'
 import VMStatusBadge from '@/components/vm/VMStatusBadge.vue'
+import BatchOperationBar from '@/components/batch/BatchOperationBar.vue'
+import { useBatchStore } from '@/stores/batch'
 
 const { t } = useI18n()
+const batchStore = useBatchStore()
 
 const loading = ref(false)
 const searchQuery = ref('')
@@ -415,10 +420,20 @@ function handleConsole(row: any) {
 }
 
 /**
- * 选择变化
+ * 选择变化 - 同步到批量操作 store
  */
 function handleSelectionChange(rows: any[]) {
   selectedRows.value = rows
+  // 同步到批量操作 store
+  batchStore.clearSelection()
+  batchStore.selectMultiple(
+    rows.map(row => ({
+      id: `ct-${row.ctid}`,
+      name: row.name,
+      type: 'ct' as const,
+      vmid: row.ctid,
+    }))
+  )
 }
 
 /**

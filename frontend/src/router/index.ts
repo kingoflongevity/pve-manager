@@ -39,10 +39,22 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '存储管理' },
       },
       {
+        path: 'cluster',
+        name: 'ClusterView',
+        component: () => import('@/views/cluster/ClusterView.vue'),
+        meta: { title: '集群概览' },
+      },
+      {
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/settings/SettingsView.vue'),
         meta: { title: '系统设置' },
+      },
+      {
+        path: 'backup',
+        name: 'Backup',
+        component: () => import('@/views/backup/BackupView.vue'),
+        meta: { title: '备份管理' },
       },
     ],
   },

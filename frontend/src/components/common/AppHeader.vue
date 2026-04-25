@@ -41,6 +41,13 @@
         </el-button>
       </el-badge>
 
+      <!-- 任务中心 -->
+      <el-badge :value="taskStore.taskCount" :hidden="taskStore.taskCount === 0" class="task-badge">
+        <el-button text class="header-icon-btn" @click="handleOpenTaskCenter">
+          <el-icon :size="18"><List /></el-icon>
+        </el-button>
+      </el-badge>
+
       <!-- 用户菜单 -->
       <el-dropdown trigger="click" @command="handleCommand" class="user-dropdown">
         <div class="user-info">
@@ -69,13 +76,16 @@
       </el-dropdown>
     </div>
   </el-header>
-</template>
 
+  <!-- 任务中心面板 -->
+  <TaskCenter v-model="taskCenterVisible" />
+</template>
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useTaskStore } from '@/stores/tasks'
 import {
   Fold,
   Expand,
@@ -85,7 +95,9 @@ import {
   User,
   Setting,
   SwitchButton,
+  List,
 } from '@element-plus/icons-vue'
+import TaskCenter from './TaskCenter.vue'
 
 defineProps<{
   collapsed: boolean
@@ -99,6 +111,7 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
+const taskStore = useTaskStore()
 
 // 页面标题
 const pageTitle = computed(() => (route.meta.title as string) || '')
@@ -126,6 +139,13 @@ const userInitial = computed(() => {
   const username = userInfo?.username || '用户'
   return username.charAt(0).toUpperCase()
 })
+
+// 任务中心
+const taskCenterVisible = ref(false)
+
+function handleOpenTaskCenter() {
+  taskCenterVisible.value = true
+}
 
 /**
  * 处理用户下拉菜单命令

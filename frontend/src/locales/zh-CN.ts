@@ -54,6 +54,7 @@ export default {
     tasks: '任务日志',
     selectNode: '选择节点',
     allNodes: '全部节点',
+    backup: '备份管理',
   },
   dashboard: {
     title: '仪表盘',
@@ -119,6 +120,17 @@ export default {
     available: '可用',
     content: '内容类型',
     shared: '共享存储',
+  },
+  tree: {
+    searchPlaceholder: '搜索资源...',
+    expandAll: '展开全部',
+    collapseAll: '收起全部',
+    refresh: '刷新资源',
+    noResources: '暂无资源',
+    lastRefreshed: '最后刷新',
+    justNow: '刚刚',
+    secondsAgo: '秒前',
+    minutesAgo: '分钟前',
   },
   settings: {
     title: '系统设置',
