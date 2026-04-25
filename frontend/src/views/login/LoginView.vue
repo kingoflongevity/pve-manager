@@ -16,8 +16,8 @@
           <div class="logo-wrapper">
             <el-icon :size="36" class="logo-icon"><Monitor /></el-icon>
           </div>
-          <h1 class="login-title">PVE 管理平台</h1>
-          <p class="login-subtitle">Proxmox VE 虚拟化管理面板</p>
+          <h1 class="login-title">PVE Cloud</h1>
+          <p class="login-subtitle">本地私有云虚拟化管理平台</p>
         </div>
 
         <!-- 登录表单 -->
@@ -257,13 +257,13 @@ function quickLogin(node: { host: string; port: number }) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: $gradient-login-bg;
   position: relative;
   overflow: hidden;
   padding: $spacing-8;
 }
 
-// 背景装饰
+// 背景装饰 - 私有云风格
 .login-background {
   position: absolute;
   inset: 0;
@@ -272,26 +272,26 @@ function quickLogin(node: { host: string; port: number }) {
   .bg-shape {
     position: absolute;
     border-radius: 50%;
-    opacity: 0.1;
+    opacity: 0.08;
     background: #fff;
 
     &-1 {
-      width: 400px;
-      height: 400px;
-      top: -100px;
+      width: 600px;
+      height: 600px;
+      top: -200px;
       right: -100px;
     }
 
     &-2 {
-      width: 300px;
-      height: 300px;
-      bottom: -50px;
-      left: -50px;
+      width: 400px;
+      height: 400px;
+      bottom: -100px;
+      left: -100px;
     }
 
     &-3 {
-      width: 200px;
-      height: 200px;
+      width: 300px;
+      height: 300px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -302,9 +302,9 @@ function quickLogin(node: { host: string; port: number }) {
     position: absolute;
     inset: 0;
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
   }
 }
 
