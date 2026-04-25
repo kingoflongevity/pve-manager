@@ -75,7 +75,7 @@ test.describe('侧边栏导航', () => {
   })
 
   test('应该显示侧边栏 Logo', async ({ page }) => {
-    const logoText = page.getByText('PVE 管理平台')
+    const logoText = page.getByText('PVE Cloud')
     await expect(logoText).toBeVisible()
   })
 

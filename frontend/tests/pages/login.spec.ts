@@ -20,7 +20,7 @@ test.describe('登录页面', () => {
     await expect(page.locator('.login-title')).toBeVisible()
 
     // 验证副标题
-    await expect(page.getByText('Proxmox VE 虚拟化管理面板')).toBeVisible()
+    await expect(page.getByText('本地私有云虚拟化管理平台')).toBeVisible()
 
     // 验证登录按钮
     await expect(page.getByRole('button', { name: /登录/ })).toBeVisible()
