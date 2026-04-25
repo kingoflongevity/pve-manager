@@ -97,8 +97,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Monitor } from '@element-plus/icons-vue'
+import { getClusterResources } from '@/api/cluster'
 import { getQEMUConfig, startQEMU, stopQEMU, rebootQEMU, shutdownQEMU, suspendQEMU, resumeQEMU } from '@/api/qemu'
-import type { QEMUConfig } from '@/api/types'
+import type { QEMUConfig, ClusterResource } from '@/api/types'
 
 // 导入 Tab 子组件
 import OverviewTab from './QEMUDetailTabs/OverviewTab.vue'
@@ -171,13 +172,27 @@ const statusType = computed(() => {
 async function fetchConfig() {
   isLoading.value = true
   try {
-    const data = await getQEMUConfig(node.value, vmid.value)
-    config.value = data
-    vmStatus.value.uptime = 0 // 实际需要从 status 接口获取
-    // 模拟当前使用率数据
-    cpuUsage.value = Math.random() * 60
-    memUsage.value = Math.random() * 70
-    diskUsage.value = Math.random() * 50
+    const [configData, resources] = await Promise.allSettled([
+      getQEMUConfig(node.value, vmid.value),
+      getClusterResources(),
+    ])
+
+    if (configData.status === 'fulfilled') {
+      config.value = configData.value
+    }
+
+    // 从集群资源中查找当前 VM 的实时状态数据
+    if (resources.status === 'fulfilled') {
+      const vmResource = resources.value.find(
+        r => (r.type === 'qemu' || r.type === 'vm') && r.vmid === vmid.value
+      )
+      if (vmResource) {
+        cpuUsage.value = vmResource.cpu ? Math.round(vmResource.cpu * 1000) / 10 : 0
+        memUsage.value = vmResource.maxmem ? Math.round(((vmResource.mem || 0) / vmResource.maxmem) * 1000) / 10 : 0
+        diskUsage.value = vmResource.maxdisk ? Math.round(((vmResource.disk || 0) / vmResource.maxdisk) * 1000) / 10 : 0
+        vmStatus.value.uptime = vmResource.uptime || 0
+      }
+    }
   } catch (error) {
     console.error('获取配置失败:', error)
     ElMessage.error('获取虚拟机配置失败')

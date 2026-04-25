@@ -27,7 +27,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 8088,
     host: true,
     // 代理配置：开发时将 API 请求转发到 Go 后端
     proxy: {

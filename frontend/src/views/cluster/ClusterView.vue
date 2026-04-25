@@ -83,6 +83,7 @@ import {
 } from '@element-plus/icons-vue'
 import ClusterSummaryBar from '@/components/cluster/ClusterSummaryBar.vue'
 import ClusterNodeCard from '@/components/cluster/ClusterNodeCard.vue'
+import { getClusterResources } from '@/api/cluster'
 import type { ClusterNode, ClusterSummary } from '@/api/taskTypes'
 
 // ===== 筛选状态 =====
@@ -116,23 +117,51 @@ const filteredNodes = computed(() => {
 
 /**
  * 从 PVE API 拉取集群节点数据
- * 开发阶段使用模拟数据
  */
 async function fetchClusterData() {
   loading.value = true
   try {
-    // TODO: 实际调用 PVE API
-    // const [nodesRes, summaryRes] = await Promise.all([
-    //   get('/cluster/nodes'),
-    //   get('/cluster/summary'),
-    // ])
-    // nodes.value = nodesRes.data
-    // clusterSummary.value = summaryRes.data
+    const resources = await getClusterResources()
+    const nodeResources = resources.filter(r => r.type === 'node')
+    const vmResources = resources.filter(r => r.type === 'qemu' || r.type === 'vm')
+    const lxcResources = resources.filter(r => r.type === 'lxc')
+    const storageResources = resources.filter(r => r.type === 'storage')
 
-    // 开发阶段模拟数据
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    nodes.value = generateMockNodes()
-    clusterSummary.value = computeSummary(nodes.value)
+    // 将 PVE API 的 ClusterResource 转换为前端 ClusterNode 格式
+    nodes.value = nodeResources.map(node => {
+      const nodeName = node.node || node.name || node.id
+      const vmCount = vmResources.filter(vm => vm.node === nodeName && vm.status === 'running').length
+      const vmTotal = vmResources.filter(vm => vm.node === nodeName).length
+      return {
+        name: nodeName,
+        ip: '',
+        status: node.status === 'online' ? 'online' : node.status === 'offline' ? 'offline' : 'warning',
+        cpu: node.cpu || 0,
+        maxmem: node.maxmem || 0,
+        mem: node.mem || 0,
+        maxdisk: node.maxdisk || 0,
+        disk: node.disk || 0,
+        cpus: node.maxcpu || 0,
+        uptime: node.uptime || 0,
+        type: 'pve',
+        level: '',
+        vmCount,
+        vmTotal,
+        netin: 0,
+        netout: 0,
+      }
+    })
+
+    // 计算集群汇总数据
+    clusterSummary.value = {
+      totalNodes: nodeResources.length,
+      onlineNodes: nodeResources.filter(n => n.status === 'online').length,
+      totalVMs: vmResources.length,
+      runningVMs: vmResources.filter(vm => vm.status === 'running').length,
+      totalCTs: lxcResources.length,
+      runningCTs: lxcResources.filter(ct => ct.status === 'running').length,
+      totalStorages: storageResources.length,
+    }
   } catch (error) {
     console.error('获取集群数据失败:', error)
     ElMessage.error('获取集群数据失败')
@@ -217,108 +246,6 @@ onUnmounted(() => {
     refreshTimer = null
   }
 })
-
-// ===== 模拟数据 =====
-
-/**
- * 生成模拟节点数据用于开发测试
- */
-function generateMockNodes(): ClusterNode[] {
-  return [
-    {
-      name: 'pve-node-01',
-      ip: '192.168.1.101',
-      status: 'online',
-      cpu: 0.35,
-      maxmem: 34359738368,
-      mem: 12025908428,
-      maxdisk: 107374182400,
-      disk: 42949672960,
-      cpus: 16,
-      uptime: 1296000,
-      type: 'pve',
-      level: '',
-      vmCount: 8,
-      vmTotal: 12,
-      netin: 2048576,
-      netout: 1048576,
-    },
-    {
-      name: 'pve-node-02',
-      ip: '192.168.1.102',
-      status: 'online',
-      cpu: 0.62,
-      maxmem: 68719476736,
-      mem: 42949672960,
-      maxdisk: 214748364800,
-      disk: 107374182400,
-      cpus: 32,
-      uptime: 864000,
-      type: 'pve',
-      level: '',
-      vmCount: 15,
-      vmTotal: 20,
-      netin: 5242880,
-      netout: 3145728,
-    },
-    {
-      name: 'pve-node-03',
-      ip: '192.168.1.103',
-      status: 'warning',
-      cpu: 0.88,
-      maxmem: 34359738368,
-      mem: 30064771072,
-      maxdisk: 53687091200,
-      disk: 48318382080,
-      cpus: 8,
-      uptime: 432000,
-      type: 'pve',
-      level: '',
-      vmCount: 5,
-      vmTotal: 6,
-      netin: 1048576,
-      netout: 524288,
-    },
-    {
-      name: 'pve-node-04',
-      ip: '192.168.1.104',
-      status: 'offline',
-      cpu: 0,
-      maxmem: 34359738368,
-      mem: 0,
-      maxdisk: 107374182400,
-      disk: 21474836480,
-      cpus: 16,
-      uptime: 0,
-      type: 'pve',
-      level: '',
-      vmCount: 0,
-      vmTotal: 4,
-      netin: 0,
-      netout: 0,
-    },
-  ]
-}
-
-/**
- * 从节点列表计算集群汇总数据
- */
-function computeSummary(nodes: ClusterNode[]): ClusterSummary {
-  const totalNodes = nodes.length
-  const onlineNodes = nodes.filter((n) => n.status === 'online').length
-  const totalVMs = nodes.reduce((sum, n) => sum + n.vmTotal, 0)
-  const runningVMs = nodes.reduce((sum, n) => sum + n.vmCount, 0)
-
-  return {
-    totalNodes,
-    onlineNodes,
-    totalVMs,
-    runningVMs,
-    totalCTs: Math.floor(totalVMs * 0.3), // 模拟数据
-    runningCTs: Math.floor(runningVMs * 0.3),
-    totalStorages: totalNodes * 2,
-  }
-}
 </script>
 
 <style lang="scss" scoped>

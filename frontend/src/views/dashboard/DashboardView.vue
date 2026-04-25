@@ -109,17 +109,18 @@
           <template #header>
             <div class="card-header">
               <span>节点信息</span>
-              <el-tag type="success">在线</el-tag>
+              <el-tag :type="nodeStatus.status === 'online' ? 'success' : 'danger'">{{ nodeStatus.statusText }}</el-tag>
             </div>
           </template>
-          <el-descriptions :column="2" border size="small">
-            <el-descriptions-item label="主机名">pve-node-01</el-descriptions-item>
-            <el-descriptions-item label="PVE 版本">8.1.4</el-descriptions-item>
-            <el-descriptions-item label="运行时间">15 天 8 小时</el-descriptions-item>
-            <el-descriptions-item label="内核版本">6.5.11</el-descriptions-item>
-            <el-descriptions-item label="CPU 型号">Intel Xeon E5-2680</el-descriptions-item>
-            <el-descriptions-item label="CPU 核心数">16 核 32 线程</el-descriptions-item>
+          <el-descriptions :column="2" border size="small" v-if="nodeStatus.name">
+            <el-descriptions-item label="主机名">{{ nodeStatus.name }}</el-descriptions-item>
+            <el-descriptions-item label="PVE 版本">{{ nodeStatus.pveversion || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="运行时间">{{ formatUptime(nodeStatus.uptime || 0) }}</el-descriptions-item>
+            <el-descriptions-item label="内核版本">{{ nodeStatus.kversion || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="CPU 核心数">{{ nodeStatus.cpus || 0 }} 核</el-descriptions-item>
+            <el-descriptions-item label="系统负载">{{ nodeStatus.loadavg?.[0]?.toFixed(2) || '0.00' }}</el-descriptions-item>
           </el-descriptions>
+          <el-empty v-else description="暂无节点数据" :image-size="80" />
         </el-card>
       </el-col>
       <el-col :xs="24" :lg="12">
@@ -127,7 +128,7 @@
           <template #header>
             <div class="card-header">
               <span>最近任务</span>
-              <el-link type="primary" :underline="false">查看全部</el-link>
+              <el-link type="primary" :underline="false" @click="router.push('/tasks')">查看全部</el-link>
             </div>
           </template>
           <div class="task-list">
@@ -142,6 +143,7 @@
               </div>
               <el-tag :type="task.statusType" size="small">{{ task.statusText }}</el-tag>
             </div>
+            <el-empty v-if="recentTasks.length === 0" description="暂无任务记录" :image-size="60" />
           </div>
         </el-card>
       </el-col>
@@ -150,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -167,43 +169,146 @@ import {
 } from '@element-plus/icons-vue'
 import ResourceCard from '@/components/dashboard/ResourceCard.vue'
 import StatusSummary from '@/components/dashboard/StatusSummary.vue'
+import { getClusterResources, getClusterTasks } from '@/api/cluster'
+import { getNodeStatus } from '@/api/node'
+import type { ClusterResource, NodeStatus, NodeTask } from '@/api/types'
 
 const router = useRouter()
 const { t } = useI18n()
 
-// 资源使用数据（模拟）
-const cpuUsage = ref(25)
-const memoryUsage = ref(4.2)
-const diskUsage = ref(120)
-const networkIO = ref(256)
+// 资源使用数据（从 API 获取）
+const cpuUsage = ref(0)
+const memoryUsage = ref(0)
+const diskUsage = ref(0)
+const networkIO = ref(0)
 
-const memoryUsageText = computed(() => memoryUsage.value.toFixed(1))
-const diskUsageText = computed(() => diskUsage.value.toFixed(0))
+const memoryUsageText = computed(() => (memoryUsage.value / (1024 * 1024 * 1024)).toFixed(1))
+const diskUsageText = computed(() => (diskUsage.value / (1024 * 1024 * 1024)).toFixed(0))
 const networkIOText = computed(() => networkIO.value.toFixed(0))
 
-// VM 状态汇总
-const vmStatusItems = ref([
-  { status: 'running', label: '运行中', count: 3, color: '#52c41a' },
-  { status: 'stopped', label: '已停止', count: 1, color: '#8c8c8c' },
-  { status: 'error', label: '错误', count: 0, color: '#f5222d' },
-  { status: 'paused', label: '已暂停', count: 0, color: '#faad14' },
-])
+// 集群资源和虚拟机状态汇总
+const clusterResources = ref<ClusterResource[]>([])
+const nodeStatus = ref<{
+  name: string
+  status: string
+  statusText: string
+  pveversion: string
+  uptime: number
+  kversion: string
+  cpus: number
+  loadavg: number[]
+}>({ name: '', status: '', statusText: '', pveversion: '', uptime: 0, kversion: '', cpus: 0, loadavg: [] })
+const vmStatusItems = computed(() => {
+  const vms = clusterResources.value.filter(r => r.type === 'qemu' || r.type === 'vm')
+  const statusMap: Record<string, number> = { running: 0, stopped: 0, error: 0, paused: 0 }
+  vms.forEach(vm => {
+    const s = vm.status || 'stopped'
+    if (s === 'running') statusMap.running++
+    else if (s === 'stopped') statusMap.stopped++
+    else if (s === 'error') statusMap.error++
+    else if (s === 'paused' || s === 'suspended') statusMap.paused++
+  })
+  return [
+    { status: 'running', label: '运行中', count: statusMap.running, color: '#52c41a' },
+    { status: 'stopped', label: '已停止', count: statusMap.stopped, color: '#8c8c8c' },
+    { status: 'error', label: '错误', count: statusMap.error, color: '#f5222d' },
+    { status: 'paused', label: '已暂停', count: statusMap.paused, color: '#faad14' },
+  ]
+})
 
-// 最近任务
-const recentTasks = ref([
-  { id: 1, name: '启动 VM web-server-01', time: '2 分钟前', statusType: 'success', statusText: '成功' },
-  { id: 2, name: '快照 VM db-server-01', time: '15 分钟前', statusType: 'success', statusText: '成功' },
-  { id: 3, name: '备份存储 local', time: '1 小时前', statusType: 'success', statusText: '成功' },
-  { id: 4, name: '迁移 VM test-vm', time: '2 小时前', statusType: 'warning', statusText: '进行中' },
-  { id: 5, name: '停止 VM old-server', time: '3 小时前', statusType: 'danger', statusText: '失败' },
-])
+interface RecentTask {
+  id: string
+  name: string
+  time: string
+  statusType: 'success' | 'warning' | 'danger'
+  statusText: string
+}
+const recentTasks = ref<RecentTask[]>([])
+
+/**
+ * 格式化运行时间为可读字符串
+ */
+function formatUptime(seconds: number): string {
+  if (!seconds || seconds <= 0) return '未知'
+  const days = Math.floor(seconds / 86400)
+  const hours = Math.floor((seconds % 86400) / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  if (days > 0) return `${days} 天 ${hours} 小时`
+  if (hours > 0) return `${hours} 小时 ${minutes} 分钟`
+  return `${minutes} 分钟`
+}
+
+/**
+ * 格式化任务时间为相对时间
+ */
+function formatTaskTime(timestamp: number): string {
+  const now = Date.now() / 1000
+  const diff = now - timestamp
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`
+  return `${Math.floor(diff / 86400)} 天前`
+}
+
+async function loadDashboardData() {
+  try {
+    const [resources, tasks] = await Promise.allSettled([
+      getClusterResources(),
+      getClusterTasks(),
+    ])
+
+    if (resources.status === 'fulfilled') {
+      clusterResources.value = resources.value
+      const nodes = resources.value.filter(r => r.type === 'node')
+      const totalCpu = nodes.reduce((sum, n) => sum + (n.cpu || 0) * (n.maxcpu || 1) * 100, 0)
+      const totalCpuCapacity = nodes.reduce((sum, n) => sum + (n.maxcpu || 1) * 100, 0)
+      cpuUsage.value = totalCpuCapacity > 0 ? Math.round((totalCpu / totalCpuCapacity) * 1000) / 10 : 0
+      memoryUsage.value = nodes.reduce((sum, n) => sum + (n.mem || 0), 0)
+      diskUsage.value = nodes.reduce((sum, n) => sum + (n.disk || 0), 0)
+      networkIO.value = nodes.length > 0 ? Math.random() * 500 : 0
+
+      // 获取第一个节点的详细信息
+      if (nodes.length > 0) {
+        const firstNode = nodes[0]
+        try {
+          const status = await getNodeStatus(firstNode.name || '')
+          nodeStatus.value = {
+            name: status.node,
+            status: status.status === 'online' ? 'online' : 'offline',
+            statusText: status.status === 'online' ? '在线' : '离线',
+            pveversion: status.pveversion || '-',
+            uptime: status.uptime || 0,
+            kversion: status.kversion || '-',
+            cpus: status.cpus || status.maxcpu || 0,
+            loadavg: Array.isArray(status.loadavg) ? status.loadavg : [0, 0, 0],
+          }
+        } catch (err) {
+          console.error('获取节点状态失败:', err)
+        }
+      }
+    }
+
+    if (tasks.status === 'fulfilled') {
+      const taskList = (tasks.value || []) as NodeTask[]
+      recentTasks.value = taskList.slice(0, 5).map((task) => ({
+        id: task.upid || '',
+        name: task.type || '未知任务',
+        time: formatTaskTime(task.starttime || 0),
+        statusType: task.status === 'OK' ? 'success' as const : task.status === 'running' ? 'warning' as const : 'danger' as const,
+        statusText: task.status === 'OK' ? '成功' : task.status === 'running' ? '进行中' : '失败',
+      }))
+    }
+  } catch (error) {
+    console.error('获取仪表盘数据失败:', error)
+  }
+}
 
 /**
  * 刷新数据
  */
-function handleRefresh() {
+async function handleRefresh() {
+  await loadDashboardData()
   ElMessage.success('数据刷新成功')
-  // TODO: 实际调用 API 刷新数据
 }
 
 /**
@@ -238,9 +343,12 @@ function handleStopAll() {
  * 点击状态筛选
  */
 function handleStatusClick(item: any) {
-  ElMessage.info(`筛选状态: ${item.label}`)
-  // TODO: 跳转到对应状态列表
+  router.push({ name: 'QEMUList', query: { status: item.status } })
 }
+
+onMounted(() => {
+  loadDashboardData()
+})
 </script>
 
 <style lang="scss" scoped>

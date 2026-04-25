@@ -138,12 +138,6 @@ func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *
 	pveGroup := r.Group("/api/pve")
 	pveGroup.Use(handler.JWTAuthMiddleware(logger))
 	{
-		// ==================== 通用代理 ====================
-		pveGroup.Any("/*proxyPath", proxyHandler.Proxy)
-
-		// ==================== 节点列表 ====================
-		pveGroup.GET("/nodes", proxyHandler.GetNodes)
-
 		// ==================== 集群管理 ====================
 		clusterGroup := pveGroup.Group("/cluster")
 		{
