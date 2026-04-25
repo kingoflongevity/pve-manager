@@ -203,6 +203,12 @@ func (c *Client) GetCSRFToken() string {
 	return c.csrfToken
 }
 
+// GetBaseURL 获取 PVE 基础 URL
+// 用于构建 WebSocket 连接地址
+func (c *Client) GetBaseURL() string {
+	return c.baseURL
+}
+
 // autoRefreshTicket 后台自动刷新 ticket
 // 在 ticket 过期前定期重新登录以维持认证状态
 func (c *Client) autoRefreshTicket() {

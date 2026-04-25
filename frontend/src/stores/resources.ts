@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { getClusterResources } from '@/api/cluster'
 import type {
   PVENode,
   PVEVM,
@@ -10,7 +11,8 @@ import type {
   ResourceStatus,
   ResourceType,
   ResourceListResponse,
-} from '@/types/resources'
+  ClusterResource,
+} from '@/api/types'
 
 /** 轮询间隔 (30 秒) */
 const POLL_INTERVAL = 30_000
@@ -100,26 +102,18 @@ export const useResourceStore = defineStore('resources', () => {
 
   /**
    * 从 PVE API 获取所有资源数据
-   * 实际项目中替换为真实的 API 调用
+   * 通过 /cluster/resources 接口获取集群资源，然后按类型分类
    */
   async function fetchResources(): Promise<void> {
     loading.value = true
     try {
-      // TODO: 替换为真实 API
-      // const res = await get<ResourceListResponse>('/cluster/resources')
-      // nodes.value = res.nodes
-      // vms.value = res.vms
-      // containers.value = res.containers
-      // storages.value = res.storages
-      // networks.value = res.networks
-
-      // 模拟数据（开发阶段）
-      const mockData = getMockResources()
-      nodes.value = mockData.nodes
-      vms.value = mockData.vms
-      containers.value = mockData.containers
-      storages.value = mockData.storages
-      networks.value = mockData.networks
+      const resources = await getClusterResources()
+      const parsed = parseClusterResources(resources)
+      nodes.value = parsed.nodes
+      vms.value = parsed.vms
+      containers.value = parsed.containers
+      storages.value = parsed.storages
+      networks.value = parsed.networks
 
       lastRefreshedAt.value = new Date()
     } catch (error) {
@@ -212,8 +206,113 @@ export const useResourceStore = defineStore('resources', () => {
 })
 
 // ============================================================
-// 内部工具函数（纯函数，通过参数接收数据）
+// 内部工具函数
 // ============================================================
+
+/**
+ * 解析集群资源数据，按类型分类
+ */
+function parseClusterResources(resources: ClusterResource[]): ResourceListResponse {
+  const nodes: PVENode[] = []
+  const vms: PVEVM[] = []
+  const containers: PVECT[] = []
+  const storages: PVEStorage[] = []
+  const networks: PVENetwork[] = []
+
+  for (const res of resources) {
+    switch (res.type) {
+      case 'node':
+        nodes.push({
+          id: `node-${res.node || res.id}`,
+          name: res.node || res.id,
+          type: 'node' as ResourceType,
+          status: normalizeNodeStatus(res.status),
+          cpuUsage: res.cpu ? Math.round(res.cpu * 1000) / 10 : undefined,
+          memoryUsage: res.maxmem ? Math.round(((res.mem || 0) / res.maxmem) * 1000) / 10 : undefined,
+          uptime: res.uptime || 0,
+          version: '',
+        })
+        break
+      case 'vm':
+        vms.push({
+          id: `vm-${res.vmid}`,
+          name: res.name || `VM ${res.vmid}`,
+          type: 'vm' as ResourceType,
+          status: normalizeVMStatus(res.status),
+          vmid: res.vmid || 0,
+          cpus: res.maxcpu || 1,
+          memoryMB: res.maxmem ? Math.round(res.maxmem / (1024 * 1024)) : 0,
+          cpuUsage: res.cpu ? Math.round(res.cpu * 1000) / 10 : undefined,
+          uptime: res.uptime || 0,
+          node: res.node || '',
+        })
+        break
+      case 'lxc':
+        containers.push({
+          id: `ct-${res.vmid}`,
+          name: res.name || `CT ${res.vmid}`,
+          type: 'ct' as ResourceType,
+          status: normalizeVMStatus(res.status),
+          ctid: res.vmid || 0,
+          cpus: res.maxcpu || 1,
+          memoryMB: res.maxmem ? Math.round(res.maxmem / (1024 * 1024)) : 0,
+          cpuUsage: res.cpu ? Math.round(res.cpu * 1000) / 10 : undefined,
+          uptime: res.uptime || 0,
+          node: res.node || '',
+        })
+        break
+      case 'storage':
+        storages.push({
+          id: `storage-${res.storage || res.id}`,
+          name: res.storage || res.id,
+          type: 'storage' as ResourceType,
+          status: (res.shared ? 'running' : 'running') as ResourceStatus,
+          storageType: 'dir',
+          total: res.maxdisk || 0,
+          used: res.disk || 0,
+          available: (res.maxdisk || 0) - (res.disk || 0),
+          usage: res.maxdisk ? Math.round(((res.disk || 0) / res.maxdisk) * 100) : 0,
+          active: true,
+          node: res.node || '',
+        })
+        break
+    }
+  }
+
+  return { nodes, vms, containers, storages, networks }
+}
+
+/**
+ * 规范化节点状态
+ */
+function normalizeNodeStatus(status?: string): ResourceStatus {
+  switch (status) {
+    case 'online':
+      return 'running'
+    case 'offline':
+      return 'stopped'
+    case 'unknown':
+      return 'unknown'
+    default:
+      return 'running'
+  }
+}
+
+/**
+ * 规范化 VM/CT 状态
+ */
+function normalizeVMStatus(status?: string): ResourceStatus {
+  switch (status) {
+    case 'running':
+      return 'running'
+    case 'stopped':
+      return 'stopped'
+    case 'paused':
+      return 'paused'
+    default:
+      return 'unknown'
+  }
+}
 
 /**
  * 将节点及其子资源构建为树形结构
@@ -361,176 +460,4 @@ function collectAllNodeIds(tree: TreeResourceData[]): string[] {
     }
     return ids
   }, [])
-}
-
-/** 获取模拟资源数据（开发阶段使用） */
-function getMockResources(): ResourceListResponse {
-  return {
-    nodes: [
-      {
-        id: 'node-pve-01',
-        name: 'pve-node-01',
-        type: 'node' as ResourceType,
-        status: 'running' as ResourceStatus,
-        cpuUsage: 23.5,
-        memoryUsage: 45.2,
-        diskUsage: 62.0,
-        uptime: 864000,
-        version: '8.1.4',
-        children: [],
-      },
-      {
-        id: 'node-pve-02',
-        name: 'pve-node-02',
-        type: 'node' as ResourceType,
-        status: 'running' as ResourceStatus,
-        cpuUsage: 78.3,
-        memoryUsage: 82.1,
-        diskUsage: 45.0,
-        uptime: 432000,
-        version: '8.1.4',
-        children: [],
-      },
-    ],
-    vms: [
-      {
-        id: 'vm-100',
-        name: 'web-server-01',
-        type: 'vm' as ResourceType,
-        status: 'running' as ResourceStatus,
-        vmid: 100,
-        cpus: 4,
-        memoryMB: 8192,
-        cpuUsage: 15.3,
-        diskUsage: 32.0,
-        uptime: 86400,
-        node: 'pve-node-01',
-      },
-      {
-        id: 'vm-101',
-        name: 'db-server-01',
-        type: 'vm' as ResourceType,
-        status: 'running' as ResourceStatus,
-        vmid: 101,
-        cpus: 8,
-        memoryMB: 16384,
-        cpuUsage: 45.2,
-        diskUsage: 67.0,
-        uptime: 172800,
-        node: 'pve-node-01',
-      },
-      {
-        id: 'vm-102',
-        name: 'test-vm-01',
-        type: 'vm' as ResourceType,
-        status: 'stopped' as ResourceStatus,
-        vmid: 102,
-        cpus: 2,
-        memoryMB: 4096,
-        node: 'pve-node-02',
-      },
-      {
-        id: 'vm-103',
-        name: 'api-gateway',
-        type: 'vm' as ResourceType,
-        status: 'error' as ResourceStatus,
-        vmid: 103,
-        cpus: 4,
-        memoryMB: 8192,
-        node: 'pve-node-02',
-      },
-    ],
-    containers: [
-      {
-        id: 'ct-200',
-        name: 'redis-cache',
-        type: 'ct' as ResourceType,
-        status: 'running' as ResourceStatus,
-        ctid: 200,
-        cpus: 2,
-        memoryMB: 2048,
-        cpuUsage: 5.1,
-        diskUsage: 12.0,
-        uptime: 259200,
-        node: 'pve-node-01',
-      },
-      {
-        id: 'ct-201',
-        name: 'nginx-proxy',
-        type: 'ct' as ResourceType,
-        status: 'running' as ResourceStatus,
-        ctid: 201,
-        cpus: 1,
-        memoryMB: 512,
-        cpuUsage: 2.3,
-        diskUsage: 8.0,
-        uptime: 259200,
-        node: 'pve-node-02',
-      },
-    ],
-    storages: [
-      {
-        id: 'storage-local',
-        name: 'local',
-        type: 'storage' as ResourceType,
-        status: 'running' as ResourceStatus,
-        storageType: 'dir',
-        total: 500_000_000_000,
-        used: 310_000_000_000,
-        available: 190_000_000_000,
-        usage: 62,
-        active: true,
-        node: 'pve-node-01',
-      },
-      {
-        id: 'storage-nfs-01',
-        name: 'nfs-backup',
-        type: 'storage' as ResourceType,
-        status: 'running' as ResourceStatus,
-        storageType: 'nfs',
-        total: 2_000_000_000_000,
-        used: 800_000_000_000,
-        available: 1_200_000_000_000,
-        usage: 40,
-        active: true,
-        node: 'pve-node-01',
-      },
-      {
-        id: 'storage-local-02',
-        name: 'local',
-        type: 'storage' as ResourceType,
-        status: 'running' as ResourceStatus,
-        storageType: 'dir',
-        total: 1_000_000_000_000,
-        used: 450_000_000_000,
-        available: 550_000_000_000,
-        usage: 45,
-        active: true,
-        node: 'pve-node-02',
-      },
-    ],
-    networks: [
-      {
-        id: 'network-vmbr0',
-        name: 'vmbr0',
-        type: 'network' as ResourceType,
-        status: 'running' as ResourceStatus,
-        interfaceType: 'bridge',
-        address: '192.168.1.100',
-        netmask: '255.255.255.0',
-        gateway: '192.168.1.1',
-        active: true,
-        node: 'pve-node-01',
-      },
-      {
-        id: 'network-eth0',
-        name: 'eth0',
-        type: 'network' as ResourceType,
-        status: 'running' as ResourceStatus,
-        interfaceType: 'eth',
-        active: true,
-        node: 'pve-node-01',
-      },
-    ],
-  }
 }

@@ -79,9 +79,10 @@ func main() {
 	// 初始化处理器
 	authHandler := handler.NewAuthHandler(logger)
 	proxyHandler := handler.NewProxyHandler(pveClient, logger)
+	vncHandler := handler.NewVNCHandler(pveClient, logger)
 
 	// 注册路由
-	setupRoutes(r, authHandler, proxyHandler, logger)
+	setupRoutes(r, authHandler, proxyHandler, vncHandler, logger)
 
 	// 启动 HTTP 服务器
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -117,7 +118,7 @@ func main() {
 
 // setupRoutes 配置所有 API 路由
 // 将路由注册集中管理，便于维护和扩展
-func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *handler.ProxyHandler, logger *zap.Logger) {
+func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *handler.ProxyHandler, vncHandler *handler.VNCHandler, logger *zap.Logger) {
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -222,5 +223,17 @@ func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *
 			nodeGroup.POST("/lxc/:vmid/snapshot", proxyHandler.CreateLXCSnapshot)
 			nodeGroup.DELETE("/lxc/:vmid/snapshot/:snapname", proxyHandler.DeleteLXCSnapshot)
 		}
+
+		// ==================== VNC 控制台 ====================
+		// VNC 票据查询（HTTP）
+		pveGroup.GET("/nodes/:node/:vmType/:vmid/vnc-ticket", vncHandler.VNCProxyTicket)
+	}
+
+	// VNC WebSocket 代理路由（需要 JWT 认证）
+	// 使用 /api/ws 前缀区分普通 HTTP API 和 WebSocket 端点
+	wsGroup := r.Group("/api/ws")
+	wsGroup.Use(handler.JWTAuthMiddleware(logger))
+	{
+		wsGroup.GET("/vnc/:node/:vmid/:vmType", vncHandler.ProxyVNCWebSocket)
 	}
 }

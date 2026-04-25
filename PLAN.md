@@ -136,321 +136,207 @@ Proxmox VE (PVE) 原生的 Web UI 基于 ExtJS 7.x，存在以下问题：
 
 ## 三、核心功能模块
 
-### 3.1 模块优先级矩阵
-
-采用 MoSCoW 优先级框架：
-
-| 模块 | 优先级 | 用户价值 | 开发难度 | 预计工期 |
-|------|--------|----------|----------|----------|
-| M1: 认证与连接 | Must | 高 | 中 | 3 天 |
-| M2: 仪表盘概览 | Must | 高 | 低 | 4 天 |
-| M3: 虚拟机管理 | Must | 高 | 高 | 7 天 |
-| M4: 容器管理 | Must | 高 | 高 | 5 天 |
-| M5: 节点管理 | Should | 中 | 中 | 4 天 |
-| M6: 存储管理 | Should | 中 | 中 | 4 天 |
-| M7: noVNC 控制台 | Must | 高 | 高 | 5 天 |
-| M8: 网络管理 | Should | 中 | 高 | 5 天 |
-| M9: 监控与告警 | Should | 中 | 中 | 4 天 |
-| M10: 用户与权限 | Could | 低 | 中 | 3 天 |
-| M11: 任务日志 | Could | 低 | 低 | 2 天 |
-| M12: 系统设置 | Could | 低 | 低 | 2 天 |
-
-### 3.2 功能模块详细设计
-
-#### M1: 认证与连接 (Must)
-
-**功能描述**:
-- 支持 PVE 用户名/密码认证（获取 ticket）
-- 支持 API Token 认证（推荐，更安全）
-- 多 PVE 节点配置管理
-- 认证状态保持与自动刷新
-- 连接测试
-
-**API 依赖**:
-- `POST /api2/json/access/ticket` - 获取认证 ticket
-- `GET /api2/json/access/ticket` - 验证 ticket 有效性
-
-**技术要点**:
-- Ticket 有效期 2 小时，需自动续期或提醒重新登录
-- API Token 格式: `USER@REALM!TOKENID=UUID`
-- 敏感信息加密存储（localStorage 中使用 AES 加密）
-
-**验收标准**:
-- 用户可通过用户名/密码或 API Token 登录
-- 登录成功后能正确调用 PVE API
-- Token 过期后能正确提示并跳转登录
-- 支持保存多个 PVE 节点连接配置
-
----
-
-#### M2: 仪表盘概览 (Must)
-
-**功能描述**:
-- 节点基础信息（主机名、PVE 版本、运行时间）
-- 资源使用概览（CPU、内存、存储、网络）
-- 虚拟机/容器状态汇总（运行中、已停止、异常）
-- 快捷操作入口（创建 VM/CT、重启、关机）
-- 实时数据刷新（可配置间隔）
-
-**API 依赖**:
-- `GET /api2/json/nodes/{node}/status` - 节点状态
-- `GET /api2/json/cluster/resources` - 集群资源列表
-- `GET /api2/json/nodes/{node}/qemu` - 虚拟机列表
-- `GET /api2/json/nodes/{node}/lxc` - 容器列表
-
-**技术要点**:
-- 使用 ECharts 绘制资源使用图表
-- 定时轮询 + WebSocket 实时更新
-- 数据缓存减少 API 调用
-
-**验收标准**:
-- 页面加载后 3 秒内展示完整概览
-- 数据每 30 秒自动刷新
-- 资源使用率可视化展示
-- 支持手动刷新
-
----
-
-#### M3: 虚拟机管理 (Must)
-
-**功能描述**:
-- 虚拟机列表（支持筛选、排序、搜索）
-- 生命周期操作：启动、关机、重启、强制停止、暂停、恢复
-- 创建虚拟机（向导式，支持 ISO/模板）
-- 编辑虚拟机配置（CPU、内存、磁盘、网络）
-- 虚拟机详情（基本信息、硬件配置、云初始化）
-- 快照管理（创建、删除、回滚）
-- 克隆/迁移
-- 批量操作
-
-**API 依赖**:
-- `GET /api2/json/nodes/{node}/qemu` - 虚拟机列表
-- `POST /api2/json/nodes/{node}/qemu` - 创建虚拟机
-- `POST /api2/json/nodes/{node}/qemu/{vmid}/status/start` - 启动
-- `POST /api2/json/nodes/{node}/qemu/{vmid}/status/stop` - 关机
-- `POST /api2/json/nodes/{node}/qemu/{vmid}/status/reboot` - 重启
-- `GET/PUT /api2/json/nodes/{node}/qemu/{vmid}/config` - 查看/修改配置
-- `POST /api2/json/nodes/{node}/qemu/{vmid}/snapshot` - 创建快照
-- `GET /api2/json/nodes/{node}/qemu/{vmid}/snapshot` - 快照列表
-
-**技术要点**:
-- 创建虚拟机使用分步表单（向导模式）
-- 异步操作使用 Task 轮询获取状态
-- 配置修改使用差异对比展示
-
-**验收标准**:
-- 列表支持分页、筛选、搜索
-- 所有生命周期操作可用
-- 能正确展示操作结果和错误信息
-- 创建虚拟机流程完整
-
----
-
-#### M4: 容器管理 (Must)
-
-**功能描述**:
-- 容器列表（类似虚拟机列表）
-- 生命周期操作：启动、停止、重启
-- 创建容器（支持模板选择）
-- 编辑容器配置
-- 容器详情
-- 快照管理
-- 克隆
-
-**API 依赖**:
-- `GET /api2/json/nodes/{node}/lxc` - 容器列表
-- `POST /api2/json/nodes/{node}/lxc` - 创建容器
-- `POST /api2/json/nodes/{node}/lxc/{vmid}/status/start` - 启动
-- `GET/PUT /api2/json/nodes/{node}/lxc/{vmid}/config` - 查看/修改配置
-- `POST /api2/json/nodes/{node}/lxc/{vmid}/snapshot` - 创建快照
-
-**技术要点**:
-- 与虚拟机管理复用大部分组件
-- CT 和 QEMU 的差异通过策略模式处理
-
-**验收标准**:
-- 功能与虚拟机管理一致
-- CT 特有功能（模板选择、unprivileged 选项）可用
-
----
-
-#### M5: 节点管理 (Should)
-
-**功能描述**:
-- 节点信息（系统信息、版本、订阅状态）
-- 系统更新（apt 更新检查）
-- 服务状态（pve-cluster, pvedaemon 等）
-- 系统日志查看
-- DNS/时间/时区配置
-
-**API 依赖**:
-- `GET /api2/json/nodes/{node}/status` - 节点状态
-- `GET /api2/json/nodes/{node}/version` - 版本信息
-- `GET /api2/json/nodes/{node}/apt/update` - 可用更新
-- `GET /api2/json/nodes/{node}/services` - 服务列表
-- `GET /api2/json/nodes/{node}/syslog` - 系统日志
-
-**验收标准**:
-- 能查看节点完整信息
-- 服务状态实时显示
-- 日志支持筛选和搜索
-
----
-
-#### M6: 存储管理 (Should)
-
-**功能描述**:
-- 存储列表（类型、状态、使用量）
-- 存储详情（内容类型、空间使用）
-- 添加存储（目录、NFS、LVM、ZFS 等）
-- 编辑/删除存储
-- ISO/模板镜像管理
-- 磁盘使用可视化
-
-**API 依赖**:
-- `GET /api2/json/storage` - 存储列表
-- `POST /api2/json/storage` - 添加存储
-- `GET /api2/json/nodes/{node}/storage/{storage}/content` - 存储内容
-- `GET /api2/json/nodes/{node}/storage/{storage}/status` - 存储状态
-
-**验收标准**:
-- 支持常见存储类型配置
-- 空间使用可视化展示
-- 镜像文件管理可用
-
----
-
-#### M7: noVNC 控制台 (Must)
-
-**功能描述**:
-- 集成 noVNC 实现虚拟机/容器远程控制台
-- 全屏模式支持
-- 剪贴板同步
-- 键盘快捷键（Ctrl+Alt+Del 等）
-- 多标签控制台
-
-**API 依赖**:
-- `POST /api2/json/nodes/{node}/qemu/{vmid}/vncproxy` - 创建 VNC 代理
-- WebSocket 连接: `wss://<host>:8006/api2/json/nodes/{node}/qemu/{vmid}/vncwebsocket`
-
-**技术要点**:
-- 需要先调用 vncproxy 获取 ticket 和 port
-- WebSocket 连接需要携带认证 cookie
-- 后端需要代理 WebSocket 连接
-- 处理跨域 WebSocket 连接
-
-**验收标准**:
-- 能正常连接并显示控制台画面
-- 键盘输入正常响应
-- 全屏切换正常
-- 连接断开后能重新连接
-
----
-
-#### M8: 网络管理 (Should)
-
-**功能描述**:
-- 网络接口列表和拓扑图
-- 接口配置（IP、网关、VLAN、Bond）
-- 创建/编辑网络接口
-- 网络配置预览（应用前）
-- 网络流量监控
-
-**API 依赖**:
-- `GET /api2/json/nodes/{node}/network` - 网络接口列表
-- `POST /api2/json/nodes/{node}/network` - 创建接口
-- `PUT /api2/json/nodes/{node}/network/{iface}` - 修改接口
-
-**技术要点**:
-- 网络拓扑图使用 ECharts Graph 或自定义 SVG
-- 网络配置需要应用+重启网络才能生效
-
-**验收标准**:
-- 能查看网络拓扑
-- 能创建和修改网络接口
-- 配置预览功能可用
-
----
-
-#### M9: 监控与告警 (Should)
-
-**功能描述**:
-- CPU/内存/存储/网络历史图表
-- 自定义监控时间范围
-- 节点间资源对比
-- 告警规则配置（阈值告警）
-- 告警通知（邮件、Webhook）
-
-**API 依赖**:
-- `GET /api2/json/nodes/{node}/rrd` - RRD 监控数据
-- `GET /api2/json/nodes/{node}/qemu/{vmid}/rrd` - VM 监控数据
-- `GET /api2/json/nodes/{node}/lxc/{vmid}/rrd` - CT 监控数据
-
-**技术要点**:
-- RRD 数据格式转换
-- ECharts 时间轴图表
-- 告警规则本地存储+定时检查
-
-**验收标准**:
-- 历史数据图表展示正常
-- 支持多种时间范围（1h, 6h, 24h, 7d, 30d, 1y）
-- 告警功能可用
-
----
-
-#### M10: 用户与权限 (Could)
-
-**功能描述**:
-- 用户管理（创建、编辑、删除）
-- 组管理
-- 角色与权限管理
-- 资源池管理
-- 认证域配置
-
-**API 依赖**:
-- `GET/POST /api2/json/access/users` - 用户管理
-- `GET/POST /api2/json/access/groups` - 组管理
-- `GET/POST /api2/json/access/acl` - ACL 管理
-- `GET/POST /api2/json/pools` - 资源池管理
-
-**验收标准**:
-- 完整用户管理功能
-- ACL 配置可用
-
----
-
-#### M11: 任务日志 (Could)
-
-**功能描述**:
-- 任务列表（所有异步任务）
-- 任务状态跟踪
-- 任务日志查看
-- 任务筛选（按类型、状态、时间）
-
-**API 依赖**:
-- `GET /api2/json/nodes/{node}/tasks` - 任务列表
-- `GET /api2/json/nodes/{node}/tasks/{upid}/status` - 任务状态
-- `GET /api2/json/nodes/{node}/tasks/{upid}/log` - 任务日志
-
-**验收标准**:
-- 任务列表实时刷新
-- 能查看完整任务日志
-
----
-
-#### M12: 系统设置 (Could)
-
-**功能描述**:
-- 界面主题（明暗模式）
-- 语言切换（中文/英文）
-- 刷新间隔配置
-- 连接配置管理
-- 关于信息
-
-**验收标准**:
-- 主题切换正常
-- 配置持久化
-- 国际化切换正常
+### 3.1 PVE API 全量功能映射表
+
+基于 Proxmox VE REST API 完整端点结构，结合阿里云、腾讯云、vSphere 等云平台设计模式，制定以下功能映射表。
+
+#### 优先级定义
+
+| 优先级 | 含义 | 说明 |
+|--------|------|------|
+| P0 - Must | 核心必备 | 产品可用性的基础，缺失则产品无法使用 |
+| P1 - Should | 重要功能 | 提升用户体验的关键功能，短期可用替代方案 |
+| P2 - Could | 锦上添花 | 增强竞争力的功能，可后续迭代 |
+| P3 - Won't | 暂不实现 | 低频场景或高风险功能，后续版本考虑 |
+
+#### 状态定义
+
+| 状态 | 含义 |
+|------|------|
+| 📋 Planned | 已规划，待开发 |
+| 🚧 In Progress | 开发中 |
+| ✅ Done | 已完成 |
+
+#### 3.1.1 认证与访问控制 (/access)
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| A01 | `POST /access/ticket` | 用户登录认证 | P0 | 📋 | 阿里云 RAM 登录 / 腾讯云 CAM 登录 |
+| A02 | `GET/POST /access/users` | 用户管理（增删改查） | P2 | 📋 | 阿里云 RAM 用户管理 / vSphere SSO 用户 |
+| A03 | `GET/POST /access/groups` | 用户组管理 | P2 | 📋 | 阿里云 RAM 用户组 / vSphere 组 |
+| A04 | `GET/POST /access/roles` | 角色与权限模板 | P2 | 📋 | 阿里云 RAM 策略 / vSphere 角色 |
+| A05 | `GET/PUT/DELETE /access/acl` | ACL 权限分配 | P2 | 📋 | 阿里云 RAM 授权 / vSphere 权限管理 |
+| A06 | `GET/POST /access/domains` | 认证域管理（PAM/LDAP/AD） | P2 | 📋 | 阿里云 SSO / vSphere Identity Sources |
+| A07 | `GET /access/password` | 修改密码 | P1 | 📋 | 通用云平台密码管理 |
+
+#### 3.1.2 节点管理 (/nodes/{node})
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| N01 | `GET /nodes/{node}/status` | 节点状态概览（CPU/内存/磁盘/运行时间） | P0 | 📋 | 阿里云 ECS 实例概览 / vSphere Host Summary |
+| N02 | `GET /nodes/{node}/version` | 节点版本信息 | P1 | 📋 | 云平台版本信息 |
+| N03 | `GET /nodes/{node}/dns` | DNS 配置查看与修改 | P2 | 📋 | 阿里云 VPC DNS / vSphere DNS 设置 |
+| N04 | `GET/POST/PUT/DELETE /nodes/{node}/net/network` | 网络接口管理 | P1 | 📋 | 阿里云 ENI / vSphere vSwitch |
+| N05 | `GET /nodes/{node}/apt/update` | 系统更新检查 | P2 | 📋 | 云平台系统补丁管理 |
+| N06 | `GET/PUT /nodes/{node}/services` | 系统服务状态管理 | P2 | 📋 | vSphere 服务管理 |
+| N07 | `GET /nodes/{node}/syslog` | 系统日志查看 | P1 | 📋 | 阿里云 CloudLog / vSphere syslog |
+| N08 | `GET /nodes/{node}/tasks` | 节点任务列表 | P1 | 📋 | 阿里云任务中心 / vSphere Tasks |
+| N09 | `GET /nodes/{node}/tasks/{upid}/log` | 任务日志详情 | P1 | 📋 | 阿里云任务日志 / vSphere Task Details |
+| N10 | `POST /nodes/{node}/execute` | 节点命令执行 | P3 | 📋 | 阿里云 RunCommand / vSphere ESXi Shell |
+| N11 | `GET/PUT /nodes/{node}/time` | 时间与时区配置 | P2 | 📋 | 云平台 NTP 设置 |
+| N12 | `GET /nodes/{node}/journal` | 系统日志流（实时） | P2 | 📋 | 阿里云 SLS 日志服务 / vSphere Journal |
+
+#### 3.1.3 QEMU 虚拟机管理 (/nodes/{node}/qemu)
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| Q01 | `GET /nodes/{node}/qemu` | 虚拟机列表 | P0 | 📋 | 阿里云 ECS 列表 / 腾讯云 CVM 列表 / vSphere VM Inventory |
+| Q02 | `GET /nodes/{node}/qemu/{vmid}` | 虚拟机状态详情 | P0 | 📋 | 阿里云 ECS 详情 / vSphere VM Summary |
+| Q03 | `POST /nodes/{node}/qemu` | 创建虚拟机 | P0 | 📋 | 阿里云创建 ECS / vSphere New VM Wizard |
+| Q04 | `POST /nodes/{node}/qemu/{vmid}/status/start` | 启动虚拟机 | P0 | 📋 | 阿里云启动实例 |
+| Q05 | `POST /nodes/{node}/qemu/{vmid}/status/stop` | 停止虚拟机 | P0 | 📋 | 阿里云停止实例 |
+| Q06 | `POST /nodes/{node}/qemu/{vmid}/status/reboot` | 重启虚拟机 | P0 | 📋 | 阿里云重启实例 |
+| Q07 | `POST /nodes/{node}/qemu/{vmid}/status/shutdown` | 优雅关机 | P0 | 📋 | 阿里云关机（ACPI） |
+| Q08 | `POST /nodes/{node}/qemu/{vmid}/status/suspend` | 暂停虚拟机 | P1 | 📋 | 阿里云挂起实例 |
+| Q09 | `POST /nodes/{node}/qemu/{vmid}/status/resume` | 恢复虚拟机 | P1 | 📋 | 阿里云恢复实例 |
+| Q10 | `POST /nodes/{node}/qemu/{vmid}/status/reset` | 强制重置 | P1 | 📋 | 阿里云强制重启 |
+| Q11 | `GET/PUT /nodes/{node}/qemu/{vmid}/config` | 虚拟机配置读写 | P0 | 📋 | 阿里云修改配置 / vSphere Edit Settings |
+| Q12 | `POST /nodes/{node}/qemu/{vmid}/config` | 在线修改配置 | P1 | 📋 | 阿里云变配 / vSphere Hot Add |
+| Q13 | `GET/POST /nodes/{node}/qemu/{vmid}/snapshot` | 快照管理（创建/列表/删除/回滚） | P1 | 📋 | 阿里云快照 / 腾讯云快照 / vSphere Snapshots |
+| Q14 | `POST /nodes/{node}/qemu/{vmid}/clone` | 虚拟机克隆 | P1 | 📋 | 阿里云自定义镜像创建 / vSphere Clone |
+| Q15 | `POST /nodes/{node}/qemu/{vmid}/move_disk` | 磁盘迁移 | P2 | 📋 | 阿里云磁盘变更存储 / vSphere Storage vMotion |
+| Q16 | `POST /nodes/{node}/qemu/{vmid}/resize` | 磁盘扩容 | P1 | 📋 | 阿里云磁盘扩容 / vSphere Extend Disk |
+| Q17 | `POST /nodes/{node}/qemu/{vmid}/vncproxy` | VNC 代理连接 | P0 | 📋 | 阿里云 VNC 控制台 / vSphere Remote Console |
+| Q18 | `GET /nodes/{node}/qemu/{vmid}/vncwebsocket` | VNC WebSocket 连接 | P0 | 📋 | 阿里云 WebSocket 控制台 |
+| Q19 | `GET /nodes/{node}/qemu/{vmid}/rrd` | 虚拟机监控数据 | P1 | 📋 | 阿里云 CloudMonitor / 腾讯云监控 |
+| Q20 | `POST /nodes/{node}/qemu/{vmid}/agent/exec` | QEMU Agent 命令执行 | P2 | 📋 | 阿里云云助手 / vSphere Guest Operations |
+| Q21 | `POST /nodes/{node}/qemu/{vmid}/migrate` | 虚拟机迁移（节点间） | P2 | 📋 | 阿里云迁移实例 / vSphere vMotion |
+| Q22 | `GET /nodes/{node}/qemu/{vmid}/pending` | 待生效配置 | P2 | 📋 | vSphere Pending Changes |
+| Q23 | `GET/PUT /nodes/{node}/qemu/{vmid}/firewall` | 虚拟机防火墙 | P2 | 📋 | 阿里云安全组 / vSphere Distributed Firewall |
+
+#### 3.1.4 LXC 容器管理 (/nodes/{node}/lxc)
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| L01 | `GET /nodes/{node}/lxc` | 容器列表 | P0 | 📋 | 阿里云 ECS（轻量）/ Docker 容器列表 |
+| L02 | `POST /nodes/{node}/lxc` | 创建容器 | P0 | 📋 | 容器创建向导 |
+| L03 | `POST /nodes/{node}/lxc/{vmid}/status/start` | 启动容器 | P0 | 📋 | 容器启动 |
+| L04 | `POST /nodes/{node}/lxc/{vmid}/status/stop` | 停止容器 | P0 | 📋 | 容器停止 |
+| L05 | `POST /nodes/{node}/lxc/{vmid}/status/reboot` | 重启容器 | P0 | 📋 | 容器重启 |
+| L06 | `POST /nodes/{node}/lxc/{vmid}/status/shutdown` | 优雅关闭容器 | P1 | 📋 | 容器优雅关闭 |
+| L07 | `POST /nodes/{node}/lxc/{vmid}/status/freeze` | 冻结容器 | P2 | 📋 | Docker Pause |
+| L08 | `POST /nodes/{node}/lxc/{vmid}/status/unfreeze` | 解冻容器 | P2 | 📋 | Docker Unpause |
+| L09 | `GET/PUT /nodes/{node}/lxc/{vmid}/config` | 容器配置读写 | P0 | 📋 | 容器配置管理 |
+| L10 | `GET/POST /nodes/{node}/lxc/{vmid}/snapshot` | 容器快照管理 | P1 | 📋 | 容器快照 / vSphere CT Snapshots |
+| L11 | `POST /nodes/{node}/lxc/{vmid}/clone` | 容器克隆 | P1 | 📋 | 容器克隆 |
+| L12 | `POST /nodes/{node}/lxc/{vmid}/vncproxy` | 容器 VNC 控制台 | P1 | 📋 | 容器 Console |
+| L13 | `GET /nodes/{node}/lxc/{vmid}/rrd` | 容器监控数据 | P1 | 📋 | 容器监控 |
+| L14 | `GET /nodes/{node}/lxc/{vmid}/pending` | 待生效配置 | P2 | 📋 | vSphere Pending Changes |
+| L15 | `GET/PUT /nodes/{node}/lxc/{vmid}/firewall` | 容器防火墙 | P2 | 📋 | 阿里云安全组 |
+| L16 | `GET /nodes/{node}/lxc/{vmid}/features` | LXC 特性管理 | P2 | 📋 | 容器高级特性 |
+
+#### 3.1.5 存储管理 (/nodes/{node}/storage, /storage)
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| S01 | `GET /nodes/{node}/storage` | 节点存储列表 | P1 | 📋 | 阿里云磁盘列表 / vSphere Datastore Browser |
+| S02 | `GET /nodes/{node}/storage/{storage}/content` | 存储内容（ISO/模板/VZDump） | P1 | 📋 | 阿里云镜像列表 / vSphere Datastore Content |
+| S03 | `GET /nodes/{node}/storage/{storage}/status` | 存储状态 | P1 | 📋 | 阿里云磁盘状态 / vSphere Datastore Status |
+| S04 | `GET/POST /storage` | 全局存储配置 | P2 | 📋 | 阿里云存储管理 / vSphere Storage Management |
+| S05 | `GET /storage/{storage}/content` | 全局存储内容列表 | P2 | 📋 | 阿里云镜像管理 |
+| S06 | `POST /storage/{storage}/content` | 上传镜像/模板 | P1 | 📋 | 阿里云导入镜像 / vSphere Upload OVF |
+
+#### 3.1.6 集群管理 (/cluster)
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| C01 | `GET /cluster/resources` | 集群资源总览 | P0 | 📋 | 阿里云资源编排概览 / vSphere vCenter Inventory |
+| C02 | `GET /cluster/tasks` | 集群任务列表 | P1 | 📋 | 阿里云任务中心 / vSphere Recent Tasks |
+| C03 | `GET /cluster/config` | 集群配置信息 | P2 | 📋 | vSphere Cluster Configuration |
+| C04 | `GET/POST /cluster/jobs` | 定时任务管理 | P2 | 📋 | 阿里云定时任务 / vSphere Scheduled Tasks |
+| C05 | `GET/POST /cluster/ha` | 高可用管理（HA Groups/Resources） | P2 | 📋 | 阿里云 HA / vSphere HA |
+| C06 | `GET/POST /cluster/backup` | 备份管理 | P1 | 📋 | 阿里云自动快照策略 / vSphere Backup |
+| C07 | `GET /cluster/metrics` | 指标服务器状态 | P2 | 📋 | 阿里云 CloudMonitor / vSphere vStats |
+| C08 | `GET/PUT /cluster/firewall` | 集群防火墙 | P2 | 📋 | 阿里云安全组 / vSphere NSX Firewall |
+
+#### 3.1.7 资源池管理 (/pools)
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| R01 | `GET /pools` | 资源池列表 | P2 | 📋 | 阿里云资源组 / vSphere Resource Pool |
+| R02 | `GET /pools/{poolid}` | 资源池详情 | P2 | 📋 | 阿里云资源组详情 / vSphere Pool Summary |
+| R03 | `POST /pools` | 创建资源池 | P2 | 📋 | 阿里云创建资源组 / vSphere New Pool |
+| R04 | `PUT/DELETE /pools/{poolid}` | 修改/删除资源池 | P2 | 📋 | 阿里云资源组管理 |
+
+#### 3.1.8 复制管理 (/cluster/replication)
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| X01 | `GET /cluster/replication` | 复制任务列表 | P2 | 📋 | 阿里云跨地域复制 / vSphere Replication |
+| X02 | `POST /cluster/replication` | 创建复制任务 | P2 | 📋 | 阿里云复制策略 / vSphere New Replication |
+
+#### 3.1.9 软件定义网络 (/cluster/sdn) - PVE 8+
+
+| # | API 端点 | 功能名称 | 优先级 | 状态 | 云平台对标 |
+|---|----------|----------|--------|------|------------|
+| D01 | `GET/POST /cluster/sdn/zones` | SDN 区域管理 | P3 | 📋 | 阿里云 VPC / vSphere NSX-T Segment |
+| D02 | `GET/POST /cluster/sdn/vnets` | 虚拟网络管理 | P3 | 📋 | 阿里云 VSwitch / vSphere Logical Switch |
+| D03 | `GET/POST /cluster/sdn/subnets` | 子网管理 | P3 | 📋 | 阿里云子网 / vSphere Subnet |
+| D04 | `GET/POST /cluster/sdn/ips` | IP 地址管理 | P3 | 📋 | 阿里云 EIP / vSphere IP Pool |
+
+### 3.2 功能统计与优先级分布
+
+| 优先级 | 功能数量 | 占比 | 涉及模块 |
+|--------|----------|------|----------|
+| P0 - Must | 18 | 17.5% | 认证、虚拟机/容器基础操作、控制台、集群资源 |
+| P1 - Should | 28 | 27.2% | 监控、快照、克隆、网络、存储、日志、备份 |
+| P2 - Could | 44 | 42.7% | 用户权限、系统配置、迁移、高级功能 |
+| P3 - Won't | 5 | 4.9% | SDN、远程命令执行 |
+| **总计** | **95** | **100%** | 9 大模块 |
+
+### 3.3 云平台设计模式对标分析
+
+#### 3.3.1 阿里云模式参考
+
+| PVE 功能 | 阿里云对标产品 | 设计借鉴 |
+|----------|----------------|----------|
+| 虚拟机管理 | ECS 控制台 | 列表筛选、生命周期操作、变配流程 |
+| 镜像管理 | ECS 镜像 | 自定义镜像、共享镜像、镜像市场 |
+| 快照管理 | 快照策略 | 自动快照、快照链、回滚操作 |
+| 网络管理 | VPC 控制台 | 网络拓扑可视化、安全组规则 |
+| 监控告警 | CloudMonitor | 时序图表、阈值告警、告警通知 |
+| 用户权限 | RAM 控制台 | 用户-角色-权限三层模型 |
+| 资源组 | 资源管理 | 按资源组筛选、资源池化管理 |
+
+#### 3.3.2 腾讯云模式参考
+
+| PVE 功能 | 腾讯云对标产品 | 设计借鉴 |
+|----------|----------------|----------|
+| 虚拟机管理 | CVM 控制台 | 快速创建向导、标签管理 |
+| 容器管理 | TKE 控制台 | 容器列表、资源配置 |
+| 存储管理 | CBS 控制台 | 磁盘列表、扩容操作 |
+| 日志管理 | CLS 日志服务 | 日志检索、实时日志流 |
+
+#### 3.3.3 vSphere 模式参考
+
+| PVE 功能 | vSphere 对标功能 | 设计借鉴 |
+|----------|------------------|----------|
+| 集群管理 | vCenter Inventory | 资源树导航、数据中心层级 |
+| 虚拟机管理 | VM Inventory | 文件夹组织、模板部署 |
+| 存储管理 | Datastore Browser | 存储浏览器、文件管理 |
+| 快照管理 | Snapshot Manager | 快照树、快照管理器 |
+| 网络管理 | Distributed Switch | 网络拓扑、端口组管理 |
+| 主机管理 | Host Summary | 主机硬件信息、服务状态 |
+
+#### 3.3.4 本产品设计原则
+
+基于以上云平台对标分析，本产品设计遵循以下原则：
+
+1. **列表优先**: 采用阿里云/腾讯云的列表式设计，支持筛选、排序、搜索
+2. **向导式创建**: 参考阿里云 ECS 创建流程，分步引导用户
+3. **详情标签页**: 采用 vSphere 的标签页设计，基本信息、配置、监控、日志分开
+4. **资源树导航**: 参考 vSphere 的左侧资源树，支持快速定位
+5. **操作审计**: 参考阿里云操作审计，记录所有管理操作
 
 ---
 
@@ -458,90 +344,149 @@ Proxmox VE (PVE) 原生的 Web UI 基于 ExtJS 7.x，存在以下问题：
 
 ### 4.1 总体规划
 
-总开发周期: **约 8-10 周** (单人开发)
+总开发周期: **约 14-16 周** (单人开发, 覆盖 95 个功能点)
 
 ```
-Phase 1          Phase 2           Phase 3           Phase 4
-基础架构          核心功能           扩展功能           完善优化
-(2 周)            (3 周)             (2-3 周)           (1-2 周)
+Phase 1              Phase 2              Phase 3              Phase 4              Phase 5
+基础架构 + 认证      虚拟机/容器核心       控制台 + 存储        节点 + 网络 + 监控   扩展功能 + 优化
+(3 周)                (4 周)                (3 周)                (3 周)                (1-3 周)
 ```
 
-### 4.2 Phase 1: 基础架构 (第 1-2 周)
+### 4.2 Phase 1: 基础架构 + 认证 (第 1-3 周)
 
-**目标**: 建立项目基础架构，实现认证与连接
+**覆盖功能**: A01, A07, C01, N01
 
-| 任务 | 工期 | 产出 |
-|------|------|------|
-| 项目初始化 | 1 天 | 前后端项目骨架 |
-| 后端 API 代理层 | 2 天 | Go + Gin 代理框架 |
-| 前端框架搭建 | 1 天 | Vue 3 项目 + 路由 + 状态管理 |
-| UI 组件库集成 | 1 天 | Element Plus 集成 + 主题定制 |
-| 认证模块 | 2 天 | 登录页、Token 管理 |
-| API 层封装 | 1 天 | Axios 封装、拦截器 |
-| 布局框架 | 1 天 | 侧边栏、顶栏、内容区 |
-| 仪表盘基础版 | 1 天 | 节点状态展示 |
+| 任务 | 工期 | 产出 | 对应功能 |
+|------|------|------|----------|
+| 项目初始化 | 1 天 | 前后端项目骨架 | - |
+| 后端 API 代理层 | 2 天 | Go + Gin 代理框架 | - |
+| 前端框架搭建 | 1 天 | Vue 3 项目 + 路由 + 状态管理 | - |
+| UI 组件库集成 | 1 天 | Element Plus 集成 + 主题定制 | - |
+| 认证模块 (A01) | 2 天 | 登录页、Ticket 管理、Token 认证 | A01 |
+| 密码修改 (A07) | 1 天 | 修改密码页面 | A07 |
+| API 层封装 | 1 天 | Axios 封装、拦截器、错误处理 | - |
+| 布局框架 | 2 天 | 侧边栏资源树、顶栏、内容区 | - |
+| 集群资源总览 (C01) | 1 天 | 资源概览卡片 | C01 |
+| 仪表盘基础版 (N01) | 2 天 | 节点状态、资源使用图表 | N01 |
 
-**里程碑 1**: 用户能登录到系统，看到仪表盘基础信息
+**里程碑 1 (v0.1)**: 用户能登录系统，查看节点状态和资源总览
 
-### 4.3 Phase 2: 核心功能 (第 3-5 周)
+### 4.3 Phase 2: 虚拟机/容器核心 (第 4-7 周)
 
-**目标**: 实现虚拟机/容器管理核心功能
+**覆盖功能**: Q01-Q12, L01-L09
 
-| 任务 | 工期 | 产出 |
-|------|------|------|
-| 虚拟机列表 | 1 天 | 列表页、筛选、分页 |
-| 虚拟机生命周期 | 1.5 天 | 启动/关机/重启等操作 |
-| 虚拟机详情与配置 | 2 天 | 详情页、配置编辑 |
-| 创建虚拟机向导 | 2 天 | 分步表单 |
-| 容器管理 | 2 天 | 复用 VM 组件，适配 CT |
-| 快照管理 | 1 天 | 快照列表、创建、回滚 |
-| noVNC 控制台 | 3 天 | VNC 代理、WebSocket |
-| 任务状态跟踪 | 1 天 | 异步操作状态轮询 |
-| 批量操作 | 1 天 | 多选、批量启停 |
-| 错误处理完善 | 1 天 | 统一错误提示 |
+| 任务 | 工期 | 产出 | 对应功能 |
+|------|------|------|----------|
+| 虚拟机列表 (Q01) | 1 天 | 列表页、筛选、排序、搜索 | Q01 |
+| 虚拟机详情 (Q02) | 1 天 | 基本信息、硬件配置标签页 | Q02 |
+| 创建虚拟机 (Q03) | 3 天 | 分步向导表单 | Q03 |
+| 生命周期操作 (Q04-Q07) | 1.5 天 | 启动/关机/重启/优雅关机 | Q04, Q05, Q06, Q07 |
+| 高级操作 (Q08-Q10) | 1 天 | 暂停/恢复/强制重置 | Q08, Q09, Q10 |
+| 配置读写 (Q11-Q12) | 2 天 | 配置编辑、在线修改 | Q11, Q12 |
+| 容器列表 (L01) | 0.5 天 | 复用 VM 列表组件 | L01 |
+| 创建容器 (L02) | 2 天 | 容器创建向导、模板选择 | L02 |
+| 容器生命周期 (L03-L06) | 1 天 | 启动/停止/重启/优雅关闭 | L03-L06 |
+| 容器配置 (L07-L09) | 1 天 | 配置查看/编辑、冻结/解冻 | L07-L09 |
+| 任务状态跟踪 | 1.5 天 | TaskTracker、异步操作轮询 | 通用 |
+| 批量操作 | 1 天 | 多选、批量启停 | Q01, L01 |
+| 错误处理完善 | 1 天 | 统一错误提示、重试机制 | 通用 |
 
-**里程碑 2**: 能完成虚拟机的创建、管理、远程控制台完整流程
+**里程碑 2 (v0.2)**: 能完成虚拟机/容器的创建、配置管理、生命周期操作完整流程
 
-### 4.4 Phase 3: 扩展功能 (第 6-8 周)
+### 4.4 Phase 3: 控制台 + 存储 + 快照克隆 (第 8-10 周)
 
-**目标**: 实现节点、存储、网络、监控等扩展功能
+**覆盖功能**: Q13-Q19, L10-L13, S01-S06, Q17-Q18, L12
 
-| 任务 | 工期 | 产出 |
-|------|------|------|
-| 节点管理 | 2 天 | 节点信息、服务状态、日志 |
-| 存储管理 | 3 天 | 存储列表、添加、镜像管理 |
-| 网络管理 | 3 天 | 网络拓扑、接口配置 |
-| 监控图表 | 2 天 | 历史数据可视化 |
-| 告警配置 | 2 天 | 阈值设置、通知 |
-| 多标签支持 | 1 天 | 标签页导航 |
+| 任务 | 工期 | 产出 | 对应功能 |
+|------|------|------|----------|
+| noVNC 控制台 (Q17-Q18) | 3 天 | VNC 代理、WebSocket 连接 | Q17, Q18 |
+| 容器控制台 (L12) | 1 天 | 容器 VNC 支持 | L12 |
+| 快照管理 (Q13) | 1.5 天 | 快照列表/创建/删除/回滚 | Q13 |
+| 容器快照 (L10) | 0.5 天 | 复用快照组件 | L10 |
+| 克隆功能 (Q14) | 1.5 天 | 完整克隆、链接克隆 | Q14 |
+| 容器克隆 (L11) | 0.5 天 | 容器克隆 | L11 |
+| 磁盘扩容 (Q16) | 1 天 | 磁盘大小调整 | Q16 |
+| 虚拟机监控 (Q19) | 1 天 | RRD 图表 | Q19 |
+| 容器监控 (L13) | 0.5 天 | 容器 RRD 图表 | L13 |
+| 存储列表 (S01) | 1 天 | 存储类型、状态、使用量 | S01 |
+| 存储内容 (S02) | 1.5 天 | ISO/模板/VZDump 管理 | S02 |
+| 存储状态 (S03) | 0.5 天 | 存储空间详情 | S03 |
+| 存储配置 (S04) | 2 天 | 添加存储、编辑、删除 | S04 |
+| 上传镜像 (S06) | 1.5 天 | 文件上传、进度显示 | S06 |
 
-**里程碑 3**: 具备完整的 PVE 管理能力
+**里程碑 3 (v0.3)**: 具备远程控制台、快照克隆、存储管理完整能力
 
-### 4.5 Phase 4: 完善优化 (第 9-10 周)
+### 4.5 Phase 4: 节点 + 网络 + 监控 + 任务 (第 11-13 周)
 
-**目标**: 完善用户体验，性能优化，文档
+**覆盖功能**: N02-N09, N11-N12, C02, C06, N04
 
-| 任务 | 工期 | 产出 |
-|------|------|------|
-| 国际化 | 2 天 | 中英文切换 |
-| 主题切换 | 1 天 | 明暗模式 |
-| 性能优化 | 2 天 | 懒加载、缓存、打包优化 |
-| 移动端适配 | 2 天 | 响应式布局 |
-| 系统设置 | 1 天 | 配置管理页 |
-| 文档编写 | 2 天 | 部署文档、使用手册 |
-| Bug 修复 | 持续 | - |
+| 任务 | 工期 | 产出 | 对应功能 |
+|------|------|------|----------|
+| 节点信息 (N02) | 0.5 天 | 版本信息、运行时间 | N02 |
+| 系统更新 (N05) | 1 天 | apt 更新检查 | N05 |
+| 服务管理 (N06) | 1 天 | 服务状态列表、启停 | N06 |
+| 系统日志 (N07) | 1.5 天 | 日志查看、筛选、搜索 | N07 |
+| 实时日志流 (N12) | 1.5 天 | 日志实时滚动 | N12 |
+| 任务列表 (N08, C02) | 1.5 天 | 节点/集群任务列表 | N08, C02 |
+| 任务日志 (N09) | 1 天 | 任务状态、日志详情 | N09 |
+| 时间配置 (N11) | 0.5 天 | NTP 设置、时区 | N11 |
+| 网络接口 (N04) | 3 天 | 网络拓扑、接口配置 | N04 |
+| 备份管理 (C06) | 2 天 | 备份列表、创建、恢复 | C06 |
+| DNS 配置 (N03) | 1 天 | DNS 查看与修改 | N03 |
 
-**里程碑 4**: 达到可发布状态
+**里程碑 4 (v0.4)**: 具备完整的系统管理和运维能力
 
-### 4.6 版本规划
+### 4.6 Phase 5: 扩展功能 + 优化 (第 14-16 周)
 
-| 版本 | 内容 | 预计时间 |
-|------|------|----------|
-| v0.1 | 基础架构 + 认证 | 第 2 周 |
-| v0.2 | 虚拟机/容器管理 | 第 5 周 |
-| v0.3 | noVNC + 扩展功能 | 第 8 周 |
-| v0.4 | 完善优化 | 第 10 周 |
-| v1.0 | 正式发布 | 第 12 周 |
+**覆盖功能**: A02-A06, C03-C05, C07-C08, Q20-Q23, L14-L16, R01-R04, X01-X02
+
+| 任务 | 工期 | 产出 | 对应功能 |
+|------|------|------|----------|
+| 用户管理 (A02) | 1 天 | 用户增删改查 | A02 |
+| 组管理 (A03) | 0.5 天 | 用户组管理 | A03 |
+| 角色管理 (A04) | 1 天 | 角色与权限模板 | A04 |
+| ACL 管理 (A05) | 1.5 天 | 权限分配 | A05 |
+| 认证域 (A06) | 1 天 | PAM/LDAP/AD 配置 | A06 |
+| 集群配置 (C03) | 1 天 | 集群信息查看 | C03 |
+| 定时任务 (C04) | 1 天 | 定时任务管理 | C04 |
+| 高可用 (C05) | 2 天 | HA 组/资源管理 | C05 |
+| 指标服务 (C07) | 0.5 天 | Metrics 状态 | C07 |
+| 集群防火墙 (C08) | 1 天 | 集群级防火墙 | C08 |
+| Agent 命令 (Q20) | 1.5 天 | QEMU Agent 执行 | Q20 |
+| 虚拟机迁移 (Q21) | 1.5 天 | 跨节点迁移 | Q21 |
+| 磁盘迁移 (Q15) | 1 天 | 存储迁移 | Q15 |
+| 待生效配置 (Q22, L14) | 0.5 天 | Pending 配置展示 | Q22, L14 |
+| 防火墙 (Q23, L15) | 1.5 天 | VM/CT 级防火墙 | Q23, L15 |
+| LXC 特性 (L16) | 0.5 天 | 高级特性管理 | L16 |
+| 资源池 (R01-R04) | 1.5 天 | 资源池管理 | R01-R04 |
+| 复制任务 (X01-X02) | 1.5 天 | 复制管理 | X01, X02 |
+| 国际化 | 2 天 | 中英文切换 | - |
+| 性能优化 | 2 天 | 缓存、懒加载、打包优化 | - |
+| Bug 修复 | 持续 | - | - |
+
+**里程碑 5 (v0.5)**: 达到可发布状态, 覆盖全部 P0/P1 功能
+
+### 4.7 版本规划
+
+| 版本 | 内容 | 覆盖功能 | 预计时间 |
+|------|------|----------|----------|
+| v0.1 | 基础架构 + 认证 + 仪表盘 | A01, A07, C01, N01 | 第 3 周 |
+| v0.2 | 虚拟机/容器核心管理 | Q01-Q12, L01-L09 | 第 7 周 |
+| v0.3 | 控制台 + 快照 + 克隆 + 存储 | Q13-Q19, L10-L13, S01-S06 | 第 10 周 |
+| v0.4 | 节点管理 + 网络 + 任务 + 备份 | N02-N12, C02, C06, N04 | 第 13 周 |
+| v0.5 | 用户权限 + 集群 + 高级功能 | A02-A06, C03-C08, Q20-Q23 | 第 16 周 |
+| v1.0 | 正式发布 + SDN 预留 | D01-D04 (P3) | 第 18 周 |
+
+### 4.8 版本特性矩阵
+
+| 版本 | P0 功能 | P1 功能 | P2 功能 | 用户价值 |
+|------|---------|---------|---------|----------|
+| v0.1 | 8/18 | 0/28 | 0/44 | 可查看、可认证 |
+| v0.2 | 15/18 | 4/28 | 0/44 | 可创建、可管理虚拟机 |
+| v0.3 | 18/18 | 18/28 | 0/44 | 可远程操作、有快照备份 |
+| v0.4 | 18/18 | 26/28 | 2/44 | 可运维管理 |
+| v0.5 | 18/18 | 28/28 | 30/44 | 完整功能 |
+| v1.0 | 18/18 | 28/28 | 44/44 | 全面覆盖 |
 
 ---
 
@@ -992,7 +937,8 @@ Nginx (静态文件 + 反向代理)
 
 ---
 
-> **文档版本**: v1.0
+> **文档版本**: v2.0
 > **创建日期**: 2026-04-25
 > **最后更新**: 2026-04-25
 > **作者**: 产品需求专家
+> **变更说明**: 基于 PVE 完整 REST API 更新功能映射表，增加云平台对标分析，重新规划开发阶段

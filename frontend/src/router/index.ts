@@ -39,6 +39,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '存储管理' },
       },
       {
+        path: 'storage/:node/:storage',
+        name: 'StorageDetail',
+        component: () => import('@/views/storage/StorageDetailView.vue'),
+        meta: { title: '存储详情' },
+      },
+      {
         path: 'cluster',
         name: 'ClusterView',
         component: () => import('@/views/cluster/ClusterView.vue'),
@@ -56,7 +62,58 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/backup/BackupView.vue'),
         meta: { title: '备份管理' },
       },
+      {
+        path: 'monitor',
+        name: 'Monitor',
+        component: () => import('@/views/monitor/MonitorView.vue'),
+        meta: { title: '监控中心' },
+      },
+      {
+        path: 'access',
+        name: 'Access',
+        component: () => import('@/views/access/AccessView.vue'),
+        meta: { title: '访问管理' },
+      },
+      {
+        path: 'nodes',
+        name: 'NodeList',
+        component: () => import('@/views/node/NodeListView.vue'),
+        meta: { title: '节点管理' },
+      },
+      {
+        path: 'nodes/:nodeName',
+        name: 'NodeDetail',
+        component: () => import('@/views/node/NodeDetailView.vue'),
+        meta: { title: '节点详情' },
+      },
+      {
+        path: 'qemu/:node/:vmid',
+        name: 'QEMUDetail',
+        component: () => import('@/views/qemu/QEMUDetailView.vue'),
+        meta: { title: '虚拟机详情' },
+      },
+      {
+        path: 'lxc/:node/:vmid',
+        name: 'LXCDetail',
+        component: () => import('@/views/lxc/LXCDetailView.vue'),
+        meta: { title: '容器详情' },
+      },
     ],
+  },
+  // 全屏控制台（不需要 AppLayout 布局）
+  {
+    path: '/qemu/:node/:vmid/console',
+    name: 'QEMUConsole',
+    component: () => import('@/components/qemu/QEMUConsoleView.vue'),
+    meta: { title: '虚拟机控制台', requiresAuth: true },
+  },
+  // 统一控制台页面（支持 QEMU 和 LXC）
+  {
+    path: '/console/:node/:vmid/:vmType',
+    name: 'ConsoleView',
+    component: () => import('@/views/console/ConsoleView.vue'),
+    meta: { title: '远程控制', requiresAuth: true },
+    props: true,
   },
 ]
 

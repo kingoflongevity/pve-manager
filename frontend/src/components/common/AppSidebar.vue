@@ -46,13 +46,40 @@
           <el-icon><DataBoard /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="t('layout.backup')" placement="right">
+      <el-tooltip :content="'备份管理'" placement="right">
         <el-button
           text
           :class="['compact-nav-item', { active: currentRoute === '/backup' }]"
           @click="router.push('/backup')"
         >
           <el-icon><Files /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="'监控中心'" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: currentRoute === '/monitor' }]"
+          @click="router.push('/monitor')"
+        >
+          <el-icon><Odometer /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="'访问管理'" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: currentRoute === '/access' }]"
+          @click="router.push('/access')"
+        >
+          <el-icon><Key /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip :content="'节点管理'" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: currentRoute === '/nodes' }]"
+          @click="router.push('/nodes')"
+        >
+          <el-icon><Monitor /></el-icon>
         </el-button>
       </el-tooltip>
       <el-tooltip :content="t('layout.settings')" placement="right">
@@ -97,6 +124,8 @@ import {
   DArrowRight,
   Connection,
   Files,
+  Odometer,
+  Key,
 } from '@element-plus/icons-vue'
 
 defineProps<{
