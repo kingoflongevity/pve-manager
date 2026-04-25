@@ -28,13 +28,12 @@ const isCollapsed = ref(false)
 </script>
 
 <style lang="scss" scoped>
-@use '@/assets/styles/variables' as *;
-
 .app-layout {
   display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: #0a0e17;
 }
 
 .main-container {
@@ -43,11 +42,12 @@ const isCollapsed = ref(false)
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  background: #0d1117;
 }
 
 .content {
   flex: 1;
-  background: $color-bg-layout;
+  background: #0d1117;
   overflow: auto;
   padding: 0;
 }

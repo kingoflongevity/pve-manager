@@ -12,7 +12,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kingoflongevity/pve-manager/backend/internal/config"
+	"github.com/kingoflongevity/pve-manager/backend/internal/database"
 	"github.com/kingoflongevity/pve-manager/backend/internal/handler"
+	"github.com/kingoflongevity/pve-manager/backend/internal/repository"
 	"go.uber.org/zap"
 )
 
@@ -57,13 +59,24 @@ func main() {
 		}
 	}
 
+	// 初始化数据库
+	if _, err := database.InitDatabase(logger); err != nil {
+		sugar.Fatalf("初始化数据库失败: %v", err)
+	}
+
+	// 初始化仓库
+	configRepo := repository.NewPVEConfigRepo()
+	sessionRepo := repository.NewSessionRepo()
+	auditRepo := repository.NewAuditLogRepo()
+	sysConfigRepo := repository.NewSystemConfigRepo()
+
 	// 初始化处理器
-	authHandler := handler.NewAuthHandler(logger)
+	authHandler := handler.NewAuthHandlerWithDB(logger, configRepo, sessionRepo, auditRepo)
 	proxyHandler := handler.NewProxyHandler(logger)
 	vncHandler := handler.NewVNCHandler(logger)
 
 	// 注册路由
-	setupRoutes(r, authHandler, proxyHandler, vncHandler, logger)
+	setupRoutes(r, authHandler, proxyHandler, vncHandler, sysConfigRepo, logger)
 
 	// 启动 HTTP 服务器
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -99,7 +112,7 @@ func main() {
 
 // setupRoutes 配置所有 API 路由
 // 将路由注册集中管理，便于维护和扩展
-func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *handler.ProxyHandler, vncHandler *handler.VNCHandler, logger *zap.Logger) {
+func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *handler.ProxyHandler, vncHandler *handler.VNCHandler, sysConfigRepo *repository.SystemConfigRepo, logger *zap.Logger) {
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -113,6 +126,22 @@ func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *
 	authGroup := r.Group("/api/auth")
 	{
 		authGroup.POST("/login", authHandler.Login)
+	}
+
+	// 系统管理路由（需要 JWT 认证）
+	adminGroup := r.Group("/api/admin")
+	adminGroup.Use(handler.JWTAuthMiddleware(logger))
+	{
+		adminGroup.GET("/pve-configs", authHandler.GetPVEConfigs)
+		adminGroup.GET("/audit-logs", authHandler.GetAuditLogs)
+		adminGroup.GET("/sys-config", func(c *gin.Context) {
+			configs, err := sysConfigRepo.GetAll()
+			if err != nil {
+				c.JSON(500, gin.H{"code": 500, "message": "获取系统配置失败"})
+				return
+			}
+			c.JSON(200, gin.H{"code": 0, "message": "ok", "data": configs})
+		})
 	}
 
 	// PVE API 代理路由（需要 JWT 认证）

@@ -155,22 +155,20 @@ function handleNodeChange(host: string) {
 </script>
 
 <style lang="scss" scoped>
-@use '@/assets/styles/variables' as *;
-
 .app-sidebar {
-  width: $sidebar-width;
-  min-width: $sidebar-width;
+  width: 280px;
+  min-width: 280px;
   height: 100vh;
-  background: $sidebar-bg;
+  background: #111827;
   display: flex;
   flex-direction: column;
-  transition: width $duration-slow $ease-base;
+  transition: width 0.3s ease;
   overflow: hidden;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(59, 130, 246, 0.1);
 
   &.collapsed {
-    width: $sidebar-collapsed-width;
-    min-width: $sidebar-collapsed-width;
+    width: 64px;
+    min-width: 64px;
 
     .node-select {
       width: 48px;
@@ -178,72 +176,62 @@ function handleNodeChange(host: string) {
   }
 }
 
-// ============================================================
-// Logo 区域
-// ============================================================
-
 .sidebar-logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: $header-height;
-  padding: 0 $spacing-4;
-  gap: $spacing-2;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  height: 56px;
+  padding: 0 16px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
   color: #fff;
-  font-weight: $font-weight-semibold;
-  font-size: $font-size-base;
+  font-weight: 600;
+  font-size: 15px;
   white-space: nowrap;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
 
   .logo-icon {
-    color: $color-primary;
+    color: #3b82f6;
     flex-shrink: 0;
   }
 
   .logo-text {
-    letter-spacing: 0.5px;
-    transition: opacity $duration-normal $ease-base;
+    letter-spacing: 1px;
+    transition: opacity 0.3s ease;
   }
 }
 
-// ============================================================
-// 节点选择器
-// ============================================================
-
 .node-selector {
-  padding: $spacing-3 $spacing-3;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 12px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
 
   :deep(.node-select) {
     .el-input__wrapper {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.03);
       box-shadow: none;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: $radius-sm;
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 6px;
 
       &:hover {
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3) inset;
       }
 
       &.is-focus {
-        box-shadow: 0 0 0 1px $color-primary inset;
+        box-shadow: 0 0 0 1px #3b82f6 inset;
       }
     }
 
     .el-input__inner {
-      color: rgba(255, 255, 255, 0.85);
+      color: #e5e7eb;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
     }
 
     .el-input__placeholder {
-      color: rgba(255, 255, 255, 0.4);
+      color: #6b7280;
     }
   }
 }
-
-// ============================================================
-// 资源树容器
-// ============================================================
 
 .resource-tree-wrapper {
   flex: 1;
@@ -253,27 +241,23 @@ function handleNodeChange(host: string) {
   min-height: 0;
 }
 
-// ============================================================
-// 折叠状态下的快捷导航
-// ============================================================
-
 .compact-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: $spacing-4;
-  gap: $spacing-2;
+  padding-top: 16px;
+  gap: 8px;
 }
 
 .compact-nav-item {
-  width: $sidebar-collapsed-width;
+  width: 48px;
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 0;
-  color: rgba(255, 255, 255, 0.5);
+  color: #6b7280;
   position: relative;
 
   &::before {
@@ -284,54 +268,46 @@ function handleNodeChange(host: string) {
     bottom: 0;
     width: 3px;
     background: transparent;
-    transition: background $transition-fast;
+    transition: background 0.2s;
   }
 
   &:hover {
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.05);
+    color: #e5e7eb;
+    background: rgba(59, 130, 246, 0.1);
   }
 
   &.active {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.15);
 
     &::before {
-      background: $color-primary;
+      background: #3b82f6;
     }
   }
 }
 
-// ============================================================
-// 底部操作区
-// ============================================================
-
 .sidebar-footer {
-  padding: $spacing-2;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+  background: rgba(0, 0, 0, 0.2);
 
   .collapse-btn {
     width: 100%;
     height: 40px;
-    color: rgba(255, 255, 255, 0.5);
+    color: #6b7280;
     justify-content: center;
-    border-radius: $radius-sm;
+    border-radius: 6px;
 
     &:hover {
-      color: rgba(255, 255, 255, 0.85);
-      background: rgba(255, 255, 255, 0.05);
+      color: #e5e7eb;
+      background: rgba(59, 130, 246, 0.1);
     }
   }
 }
 
-// ============================================================
-// 过渡动画
-// ============================================================
-
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity $duration-normal $ease-base;
+  transition: opacity 0.3s ease;
 }
 
 .fade-enter-from,

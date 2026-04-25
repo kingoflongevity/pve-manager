@@ -1,149 +1,175 @@
 <template>
   <div class="login-page">
-    <!-- 背景装饰 -->
     <div class="login-background">
-      <div class="bg-shape bg-shape-1"></div>
-      <div class="bg-shape bg-shape-2"></div>
-      <div class="bg-shape bg-shape-3"></div>
-      <div class="bg-grid"></div>
+      <div class="scan-line"></div>
+      <div class="grid-overlay"></div>
+      <div class="noise"></div>
     </div>
 
-    <!-- 登录卡片 -->
-    <div class="login-container animate-slide-up">
-      <div class="login-card">
-        <!-- Logo和标题 -->
-        <div class="login-header">
-          <div class="logo-wrapper">
-            <el-icon :size="36" class="logo-icon"><Monitor /></el-icon>
+    <div class="login-container">
+      <div class="login-panel">
+        <div class="panel-header">
+          <div class="brand">
+            <div class="brand-icon">
+              <el-icon :size="28"><Monitor /></el-icon>
+            </div>
+            <div class="brand-text">
+              <h1>PVE Cloud</h1>
+              <span class="brand-version">Operations Console v0.2.0</span>
+            </div>
           </div>
-          <h1 class="login-title">PVE Cloud</h1>
-          <p class="login-subtitle">本地私有云虚拟化管理平台</p>
+          <div class="status-bar">
+            <span class="status-dot"></span>
+            <span class="status-text">SYSTEM READY</span>
+          </div>
         </div>
 
-        <!-- 登录表单 -->
-        <el-form ref="formRef" :model="loginForm" :rules="rules" label-position="top" @submit.prevent="handleLogin">
-          <!-- 登录方式切换 -->
-          <el-form-item>
-            <el-segmented
-              v-model="loginMethod"
-              :options="[
-                { label: '用户名密码', value: 'password' },
-                { label: 'API Token', value: 'token' },
-              ]"
-              class="login-segmented"
-            />
-          </el-form-item>
+        <div class="panel-body">
+          <el-steps :active="currentStep" finish-status="success" class="wizard-steps">
+            <el-step title="连接目标" />
+            <el-step title="身份验证" />
+            <el-step title="连接确认" />
+          </el-steps>
 
-          <!-- 节点地址 -->
-          <el-form-item :label="t('auth.nodeAddress')" prop="host">
-            <el-input
-              v-model="loginForm.host"
-              :placeholder="t('auth.nodeAddressPlaceholder')"
-              size="large"
-              clearable
-            >
-              <template #prefix>
-                <el-icon><Link /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
+          <div class="step-content">
+            <transition name="step-fade" mode="out-in">
+              <div v-if="currentStep === 0" class="step-panel" key="step0">
+                <div class="step-title">
+                  <el-icon :size="20" class="step-icon"><Link /></el-icon>
+                  <h3>PVE 服务器地址</h3>
+                </div>
+                <p class="step-desc">输入 Proxmox VE 集群的管理地址和端口号</p>
 
-          <!-- 端口 -->
-          <el-form-item :label="t('auth.nodePort')" prop="port">
-            <el-input-number
-              v-model="loginForm.port"
-              :min="1"
-              :max="65535"
-              size="large"
-              class="port-input"
-            />
-          </el-form-item>
+                <div class="input-group">
+                  <el-form-item label="服务器地址" class="field">
+                    <el-input
+                      v-model="form.host"
+                      placeholder="例: 192.168.1.10"
+                      size="large"
+                      @keyup.enter="nextStep"
+                    >
+                      <template #prefix><el-icon><Link /></el-icon></template>
+                    </el-input>
+                  </el-form-item>
 
-          <!-- 用户名/密码 -->
-          <template v-if="loginMethod === 'password'">
-            <el-form-item :label="t('auth.username')" prop="username">
-              <el-input
-                v-model="loginForm.username"
-                :placeholder="t('auth.usernamePlaceholder')"
-                size="large"
-                clearable
-              >
-                <template #prefix>
-                  <el-icon><User /></el-icon>
-                </template>
-              </el-input>
-            </el-form-item>
+                  <el-form-item label="API 端口" class="field">
+                    <el-input-number
+                      v-model="form.port"
+                      :min="1"
+                      :max="65535"
+                      size="large"
+                      class="port-field"
+                    />
+                  </el-form-item>
 
-            <el-form-item :label="t('auth.password')" prop="password">
-              <el-input
-                v-model="loginForm.password"
-                type="password"
-                show-password
-                :placeholder="t('auth.passwordPlaceholder')"
-                size="large"
-              >
-                <template #prefix>
-                  <el-icon><Lock /></el-icon>
-                </template>
-              </el-input>
-            </el-form-item>
-          </template>
+                  <el-form-item label="验证方式" class="field">
+                    <el-radio-group v-model="form.realm" size="large">
+                      <el-radio-button value="pam">PAM (Linux)</el-radio-button>
+                      <el-radio-button value="pve">PVE</el-radio-button>
+                    </el-radio-group>
+                  </el-form-item>
+                </div>
+              </div>
 
-          <!-- API Token -->
-          <el-form-item v-else :label="t('auth.apiToken')" prop="apiToken">
-            <el-input
-              v-model="loginForm.apiToken"
-              type="password"
-              show-password
-              :placeholder="t('auth.tokenPlaceholder')"
-              size="large"
-            >
-              <template #prefix>
-                <el-icon><Key /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
+              <div v-else-if="currentStep === 1" class="step-panel" key="step1">
+                <div class="step-title">
+                  <el-icon :size="20" class="step-icon"><Key /></el-icon>
+                  <h3>管理员凭据</h3>
+                </div>
+                <p class="step-desc">输入具有 root 或 Administrator 权限的账户信息</p>
 
-          <!-- 记住我 -->
-          <el-form-item>
-            <div class="form-options">
-              <el-checkbox v-model="rememberMe">记住节点配置</el-checkbox>
-              <el-link type="primary" :underline="false">忘记配置？</el-link>
-            </div>
-          </el-form-item>
+                <div class="input-group">
+                  <el-form-item label="用户名" class="field">
+                    <el-input
+                      v-model="form.username"
+                      placeholder="root"
+                      size="large"
+                      @keyup.enter="nextStep"
+                    >
+                      <template #prefix><el-icon><User /></el-icon></template>
+                    </el-input>
+                  </el-form-item>
 
-          <!-- 登录按钮 -->
-          <el-form-item>
+                  <el-form-item label="密码" class="field">
+                    <el-input
+                      v-model="form.password"
+                      type="password"
+                      show-password
+                      placeholder="输入 PVE root 密码"
+                      size="large"
+                      @keyup.enter="handleLogin"
+                    >
+                      <template #prefix><el-icon><Lock /></el-icon></template>
+                    </el-input>
+                  </el-form-item>
+                </div>
+              </div>
+
+              <div v-else class="step-panel" key="step2">
+                <div class="step-title">
+                  <el-icon :size="20" class="step-icon"><CircleCheck /></el-icon>
+                  <h3>连接验证中...</h3>
+                </div>
+
+                <div class="verification-status">
+                  <div class="check-item" v-for="item in checks" :key="item.label">
+                    <el-icon :size="18" :class="['check-icon', item.status]">
+                      <Loading v-if="item.status === 'loading'" />
+                      <CircleCheck v-else-if="item.status === 'success'" />
+                      <CircleClose v-else-if="item.status === 'error'" />
+                    </el-icon>
+                    <span class="check-label">{{ item.label }}</span>
+                    <span class="check-result">{{ item.result }}</span>
+                  </div>
+                </div>
+
+                <div v-if="loginError" class="error-box">
+                  <el-icon :size="16"><WarningFilled /></el-icon>
+                  <span>{{ loginError }}</span>
+                </div>
+              </div>
+            </transition>
+          </div>
+
+          <div class="panel-actions">
             <el-button
+              v-if="currentStep > 0 && currentStep < 2"
+              size="large"
+              @click="prevStep"
+              :disabled="loading"
+            >
+              <el-icon><Back /></el-icon>
+              上一步
+            </el-button>
+            <el-button
+              v-if="currentStep < 2"
               type="primary"
               size="large"
-              :loading="loading"
-              class="login-btn"
-              @click="handleLogin"
+              @click="nextStep"
+              :disabled="!canProceed"
+              class="btn-next"
             >
-              {{ loading ? '登录中...' : t('common.login') }}
+              下一步
+              <el-icon><Right /></el-icon>
             </el-button>
-          </el-form-item>
-        </el-form>
-
-        <!-- 已保存节点 -->
-        <div v-if="savedNodes.length > 0" class="saved-nodes">
-          <div class="saved-nodes-title">最近使用的节点</div>
-          <div class="saved-nodes-list">
-            <el-tag
-              v-for="node in savedNodes.slice(0, 3)"
-              :key="node.host"
-              class="saved-node-tag"
-              @click="quickLogin(node)"
+            <el-button
+              v-if="currentStep === 2"
+              type="primary"
+              size="large"
+              @click="handleLogin"
+              :loading="loading"
+              :disabled="!canLogin"
+              class="btn-connect"
             >
-              {{ node.name }}:{{ node.port }}
-            </el-tag>
+              {{ loading ? '连接中...' : '连接控制台' }}
+            </el-button>
           </div>
         </div>
 
-        <!-- 底部信息 -->
-        <div class="login-footer">
-          <span>Proxmox VE Web UI v0.1.0</span>
+        <div class="panel-footer">
+          <span>Proxmox VE Web Management Console</span>
+          <span class="divider">|</span>
+          <span>Powered by Go + Vue3</span>
         </div>
       </div>
     </div>
@@ -153,289 +179,441 @@
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Monitor, Link, User, Lock, Key } from '@element-plus/icons-vue'
+import {
+  Monitor, Link, User, Lock, Key,
+  CircleCheck, CircleClose, Loading, WarningFilled,
+  Back, Right,
+} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
-import type { FormInstance, FormRules } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
-const { t } = useI18n()
 const authStore = useAuthStore()
 
-const formRef = ref<FormInstance>()
+const currentStep = ref(0)
 const loading = ref(false)
-const loginMethod = ref<'password' | 'token'>('password')
-const rememberMe = ref(true)
+const loginError = ref('')
 
-// 已保存的节点
-const savedNodes = computed(() => authStore.savedNodes)
-
-/**
- * 登录表单数据
- */
-const loginForm = reactive({
-  host: '192.168.1.100',
+const form = reactive({
+  host: '',
   port: 8006,
   username: 'root',
   password: '',
-  apiToken: '',
+  realm: 'pam',
 })
 
-/**
- * 表单校验规则
- */
-const rules: FormRules = {
-  host: [{ required: true, message: t('auth.connectionFailed'), trigger: 'blur' }],
-  port: [{ required: true, message: '请输入端口', trigger: 'blur' }],
-  username: [{ required: true, message: t('auth.usernamePlaceholder'), trigger: 'blur' }],
-  password: [{ required: true, message: t('auth.passwordPlaceholder'), trigger: 'blur' }],
-  apiToken: [{ required: true, message: t('auth.tokenPlaceholder'), trigger: 'blur' }],
+const canProceed = computed(() => {
+  if (currentStep.value === 0) return form.host.trim() !== ''
+  if (currentStep.value === 1) return form.password.trim() !== ''
+  return false
+})
+
+const canLogin = computed(() => {
+  return checks.value.every(c => c.status === 'success')
+})
+
+interface CheckItem {
+  label: string
+  status: 'loading' | 'success' | 'error' | 'pending'
+  result: string
 }
 
-/**
- * 处理登录
- * 1. 校验表单
- * 2. 调用认证 store 的 login 方法
- * 3. 登录成功后保存节点配置并跳转
- */
-async function handleLogin() {
-  if (!formRef.value) return
+const checks = ref<CheckItem[]>([
+  { label: '网络连接', status: 'pending', result: '等待检测' },
+  { label: 'API 认证', status: 'pending', result: '等待验证' },
+  { label: '权限检查', status: 'pending', result: '等待检查' },
+])
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
+function nextStep() {
+  if (!canProceed.value) return
+  if (currentStep.value === 0) {
+    currentStep.value = 1
+  } else if (currentStep.value === 1) {
+    currentStep.value = 2
+    runChecks()
+  }
+}
 
-    loading.value = true
-    try {
-      const success = await authStore.login({
-        host: loginForm.host,
-        port: loginForm.port,
-        username: loginForm.username,
-        password: loginMethod.value === 'password' ? loginForm.password : undefined,
-        apiToken: loginMethod.value === 'token' ? loginForm.apiToken : undefined,
-      })
+function prevStep() {
+  if (currentStep.value > 0) {
+    currentStep.value--
+    loginError.value = ''
+  }
+}
 
-      if (success) {
-        ElMessage.success(t('auth.loginSuccess'))
+async function runChecks() {
+  checks.value = [
+    { label: '网络连接', status: 'loading', result: '检测中...' },
+    { label: 'API 认证', status: 'pending', result: '等待验证' },
+    { label: '权限检查', status: 'pending', result: '等待检查' },
+  ]
 
-        // 保存节点配置
-        if (rememberMe.value) {
-          authStore.saveNode({
-            host: loginForm.host,
-            port: loginForm.port,
-            name: loginForm.host,
-          })
-        }
+  loginError.value = ''
 
-        // 跳转到目标页面
-        const redirect = (route.query.redirect as string) || '/'
-        router.push(redirect)
-      } else {
-        ElMessage.error(t('auth.loginFailed'))
-      }
-    } finally {
-      loading.value = false
+  try {
+    const success = await authStore.login({
+      host: form.host,
+      port: form.port,
+      username: form.username,
+      password: form.password,
+      realm: form.realm,
+    })
+
+    if (success) {
+      checks.value[0] = { label: '网络连接', status: 'success', result: '已连接' }
+      checks.value[1] = { label: 'API 认证', status: 'success', result: '已验证' }
+      checks.value[2] = { label: '权限检查', status: 'success', result: '管理员权限' }
+      ElMessage.success('认证成功')
+      const redirect = (route.query.redirect as string) || '/'
+      router.push(redirect)
+    } else {
+      checks.value[1] = { label: 'API 认证', status: 'error', result: '认证失败' }
+      loginError.value = 'PVE 认证失败，请检查用户名和密码'
     }
-  })
-}
-
-/**
- * 快速登录已保存的节点
- */
-function quickLogin(node: { host: string; port: number }) {
-  loginForm.host = node.host
-  loginForm.port = node.port
+  } catch (error: any) {
+    const msg = error?.message || error?.response?.data?.message || '连接失败'
+    checks.value[0] = { label: '网络连接', status: 'error', result: '无法连接' }
+    loginError.value = msg
+  }
 }
 </script>
 
 <style lang="scss" scoped>
-@use '@/assets/styles/variables' as *;
+@import '@/assets/styles/variables';
 
 .login-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $gradient-login-bg;
+  background: #0a0e17;
   position: relative;
   overflow: hidden;
-  padding: $spacing-8;
 }
 
-// 背景装饰 - 私有云风格
 .login-background {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  z-index: 0;
 
-  .bg-shape {
+  .scan-line {
     position: absolute;
-    border-radius: 50%;
-    opacity: 0.08;
-    background: #fff;
-
-    &-1 {
-      width: 600px;
-      height: 600px;
-      top: -200px;
-      right: -100px;
-    }
-
-    &-2 {
-      width: 400px;
-      height: 400px;
-      bottom: -100px;
-      left: -100px;
-    }
-
-    &-3 {
-      width: 300px;
-      height: 300px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #3b82f6 50%, transparent);
+    animation: scan 4s ease-in-out infinite;
+    opacity: 0.3;
   }
 
-  .bg-grid {
+  .grid-overlay {
     position: absolute;
     inset: 0;
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
+      linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
+
+  .noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
+}
+
+@keyframes scan {
+  0%, 100% { top: 0; }
+  50% { top: 100%; }
 }
 
 .login-container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
+  padding: 16px;
 }
 
-.login-card {
-  background: $gradient-login-card;
-  backdrop-filter: blur(10px);
-  border-radius: $radius-lg;
-  padding: $spacing-10;
-  box-shadow: $shadow-modal;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-
-  @media (max-width: $breakpoint-sm) {
-    padding: $spacing-6;
-  }
+.login-panel {
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.08), 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-.login-header {
-  text-align: center;
-  margin-bottom: $spacing-8;
-
-  .logo-wrapper {
-    width: 72px;
-    height: 72px;
-    margin: 0 auto $spacing-4;
-    background: $gradient-primary;
-    border-radius: $radius-md;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 8px 24px rgba(22, 119, 255, 0.3);
-
-    .logo-icon {
-      color: #fff;
-    }
-  }
-
-  .login-title {
-    font-size: $font-size-3xl;
-    font-weight: $font-weight-bold;
-    color: $color-text-primary;
-    margin-bottom: $spacing-2;
-  }
-
-  .login-subtitle {
-    color: $color-text-secondary;
-    font-size: $font-size-sm;
-  }
-}
-
-// 分段控制器
-:deep(.login-segmented) {
-  .el-segmented__item {
-    padding: $spacing-2 $spacing-4;
-  }
-}
-
-// 表单样式
-:deep(.el-form-item) {
-  margin-bottom: $spacing-5;
-
-  .el-form-item__label {
-    font-weight: $font-weight-medium;
-    color: $color-text-regular;
-  }
-}
-
-.port-input {
-  width: 100%;
-}
-
-.form-options {
+.panel-header {
+  padding: 20px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-}
+  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  background: rgba(15, 23, 42, 0.5);
 
-.login-btn {
-  width: 100%;
-  height: 44px;
-  font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
-  border-radius: $radius-sm;
-}
-
-// 已保存节点
-.saved-nodes {
-  margin-top: $spacing-6;
-  padding-top: $spacing-6;
-  border-top: 1px solid $color-border-light;
-
-  .saved-nodes-title {
-    font-size: $font-size-sm;
-    color: $color-text-secondary;
-    margin-bottom: $spacing-3;
-  }
-
-  .saved-nodes-list {
+  .brand {
     display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-2;
+    align-items: center;
+    gap: 14px;
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-version {
+      font-size: 11px;
+      color: #64748b;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+    }
   }
 
-  .saved-node-tag {
-    cursor: pointer;
-    transition: $transition-fast;
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: #10b981;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    letter-spacing: 1px;
 
-    &:hover {
-      background: $primary-1;
-      color: $color-primary;
-      border-color: $color-primary-light;
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
     }
   }
 }
 
-.login-footer {
-  margin-top: $spacing-8;
-  text-align: center;
-  color: $color-text-placeholder;
-  font-size: $font-size-xs;
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
-// 标签样式覆盖
-:deep(.el-tag) {
-  border-radius: $radius-xs;
+.panel-body {
+  padding: 24px;
+}
+
+.wizard-steps {
+  margin-bottom: 24px;
+
+  :deep(.el-step__title) {
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  :deep(.el-step__line) {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+
+  :deep(.el-step__head.is-process) {
+    .el-step__icon {
+      border-color: #3b82f6;
+    }
+  }
+
+  :deep(.el-step__icon-inner) {
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+
+.step-content {
+  min-height: 260px;
+}
+
+.step-panel {
+  .step-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+
+    .step-icon {
+      color: #3b82f6;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin: 0;
+    }
+  }
+
+  .step-desc {
+    font-size: 12px;
+    color: #64748b;
+    margin: 0 0 20px 0;
+    padding-left: 30px;
+  }
+}
+
+.input-group {
+  .field {
+    margin-bottom: 16px;
+
+    :deep(.el-form-item__label) {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .port-field {
+    width: 100%;
+  }
+}
+
+:deep(.el-input__wrapper) {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: none;
+
+  &:hover {
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  &.is-focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+
+  .el-input__inner {
+    color: #e2e8f0;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+  }
+
+  .el-input__prefix-inner {
+    color: #3b82f6;
+  }
+}
+
+.verification-status {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.05);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .check-icon {
+    &.loading { color: #3b82f6; animation: spin 1s linear infinite; }
+    &.success { color: #10b981; }
+    &.error { color: #ef4444; }
+  }
+
+  .check-label {
+    flex: 1;
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+
+  .check-result {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    color: #64748b;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.error-box {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.panel-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+
+  .btn-next, .btn-connect {
+    min-width: 120px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: none;
+    font-weight: 600;
+  }
+
+  :deep(.el-button:not(.btn-next):not(.btn-connect)) {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #94a3b8;
+  }
+}
+
+.panel-footer {
+  padding: 12px 24px;
+  border-top: 1px solid rgba(59, 130, 246, 0.1);
+  background: rgba(15, 23, 42, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #475569;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.step-fade-enter-active,
+.step-fade-leave-active {
+  transition: all 0.25s ease;
+}
+
+.step-fade-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.step-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 </style>
