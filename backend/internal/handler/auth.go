@@ -124,9 +124,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	_, err = client.Login(ctx, req.Username, req.Password, req.Realm)
 	if err != nil {
-		h.logger.Warn("PVE 登录失败", zap.String("host", req.Host), zap.String("username", req.Username), zap.String("ip", c.ClientIP()), zap.Error(err))
+		fullUsername := fmt.Sprintf("%s@%s", req.Username, req.Realm)
+		h.logger.Warn("PVE 登录失败", zap.String("host", req.Host), zap.String("username", fullUsername), zap.String("ip", c.ClientIP()), zap.Error(err))
 		h.recordAuditLog(req.Username, "login", fmt.Sprintf("%s:%d", req.Host, req.Port), fmt.Sprintf("登录失败: %s", err.Error()), c.ClientIP(), "failed")
-		c.JSON(401, gin.H{"code": 401, "message": fmt.Sprintf("PVE 认证失败: %s", err.Error())})
+		c.JSON(401, gin.H{"code": 401, "message": fmt.Sprintf("认证失败：用户 %q 的密码不正确，请检查用户名和密码", fullUsername)})
 		return
 	}
 
