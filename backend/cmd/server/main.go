@@ -48,7 +48,7 @@ func main() {
 	}
 
 	// 创建 PVE 客户端
-	pveClient, err := pve.NewClient(cfg.PVE)
+	pveClient, err := pve.NewClient(cfg.PVE, sugar.Desugar())
 	if err != nil {
 		sugar.Fatalf("创建 PVE 客户端失败: %v", err)
 	}
@@ -137,13 +137,90 @@ func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *
 	pveGroup := r.Group("/api/pve")
 	pveGroup.Use(handler.JWTAuthMiddleware(logger))
 	{
-		// 专用接口
-		pveGroup.GET("/nodes", proxyHandler.GetNodes)
-		pveGroup.GET("/nodes/:node/qemu", proxyHandler.GetVMs)
-		pveGroup.GET("/nodes/:node/lxc", proxyHandler.GetLXCs)
-		pveGroup.GET("/nodes/:node/storage", proxyHandler.GetStorages)
-
-		// 通用代理（通配符匹配所有剩余路径）
+		// ==================== 通用代理 ====================
 		pveGroup.Any("/*proxyPath", proxyHandler.Proxy)
+
+		// ==================== 节点列表 ====================
+		pveGroup.GET("/nodes", proxyHandler.GetNodes)
+
+		// ==================== 集群管理 ====================
+		clusterGroup := pveGroup.Group("/cluster")
+		{
+			clusterGroup.GET("/resources", proxyHandler.GetClusterResources)
+			clusterGroup.GET("/tasks", proxyHandler.GetClusterTasks)
+			clusterGroup.GET("/nextid", proxyHandler.GetNextID)
+			clusterGroup.GET("/ha/config", proxyHandler.GetHAConfig)
+			clusterGroup.GET("/sdn/zones", proxyHandler.GetSDNZones)
+			clusterGroup.GET("/sdn/vnets", proxyHandler.GetSDNVNETs)
+		}
+
+		// ==================== 资源池管理 ====================
+		poolsGroup := pveGroup.Group("/pools")
+		{
+			poolsGroup.GET("", proxyHandler.GetPoolList)
+			poolsGroup.GET("/:poolid", proxyHandler.GetPool)
+		}
+
+		// ==================== 访问控制 ====================
+		accessGroup := pveGroup.Group("/access")
+		{
+			accessGroup.GET("/users", proxyHandler.GetUsers)
+			accessGroup.GET("/groups", proxyHandler.GetGroups)
+			accessGroup.GET("/roles", proxyHandler.GetRoles)
+			accessGroup.GET("/acl", proxyHandler.GetACLs)
+			accessGroup.GET("/domains", proxyHandler.GetDomains)
+		}
+
+		// ==================== 节点操作 ====================
+		nodeGroup := pveGroup.Group("/nodes/:node")
+		{
+			// 节点状态
+			nodeGroup.GET("/status", proxyHandler.GetNodeStatus)
+			nodeGroup.GET("/version", proxyHandler.GetNodeVersion)
+			nodeGroup.GET("/services", proxyHandler.GetNodeServices)
+			nodeGroup.GET("/syslog", proxyHandler.GetNodeSyslog)
+			nodeGroup.GET("/tasks", proxyHandler.GetNodeTasks)
+			nodeGroup.GET("/tasks/:upid/status", proxyHandler.GetNodeTaskStatus)
+			nodeGroup.GET("/tasks/:upid/log", proxyHandler.GetNodeTaskLog)
+			nodeGroup.GET("/tasks/:upid/wait", proxyHandler.WaitForTask)
+			nodeGroup.GET("/network", proxyHandler.GetNodeNetwork)
+			nodeGroup.GET("/dns", proxyHandler.GetNodeDNS)
+			nodeGroup.GET("/time", proxyHandler.GetNodeTime)
+			nodeGroup.GET("/apt/update", proxyHandler.GetNodeAPTUpdate)
+			nodeGroup.GET("/rrd", proxyHandler.GetNodeRRD)
+
+			// ==================== 存储管理 ====================
+			nodeGroup.GET("/storage", proxyHandler.GetStorageList)
+			nodeGroup.GET("/storage/:storage/status", proxyHandler.GetStorageStatus)
+			nodeGroup.GET("/storage/:storage/content", proxyHandler.GetStorageContent)
+			nodeGroup.POST("/storage/:storage/download-url", proxyHandler.DownloadISO)
+
+			// ==================== QEMU 虚拟机 ====================
+			nodeGroup.GET("/qemu", proxyHandler.GetQEMUList)
+			nodeGroup.POST("/qemu", proxyHandler.CreateQEMU)
+			nodeGroup.GET("/qemu/:vmid/config", proxyHandler.GetQEMUConfig)
+			nodeGroup.PUT("/qemu/:vmid/config", proxyHandler.SetQEMUConfig)
+			nodeGroup.POST("/qemu/:vmid/status/:action", proxyHandler.QEMUAction)
+			nodeGroup.DELETE("/qemu/:vmid", proxyHandler.DeleteQEMU)
+			nodeGroup.GET("/qemu/:vmid/snapshot", proxyHandler.GetQEMUSnapshots)
+			nodeGroup.POST("/qemu/:vmid/snapshot", proxyHandler.CreateQEMUSnapshot)
+			nodeGroup.DELETE("/qemu/:vmid/snapshot/:snapname", proxyHandler.DeleteQEMUSnapshot)
+			nodeGroup.POST("/qemu/:vmid/clone", proxyHandler.CloneQEMU)
+			nodeGroup.POST("/qemu/:vmid/migrate", proxyHandler.MigrateQEMU)
+			nodeGroup.GET("/qemu/:vmid/rrd", proxyHandler.GetQEMURRD)
+			nodeGroup.GET("/qemu/:vmid/pending", proxyHandler.GetQEMUPending)
+			nodeGroup.POST("/qemu/:vmid/vncproxy", proxyHandler.VNCProxy)
+
+			// ==================== LXC 容器 ====================
+			nodeGroup.GET("/lxc", proxyHandler.GetLXCList)
+			nodeGroup.POST("/lxc", proxyHandler.CreateLXC)
+			nodeGroup.GET("/lxc/:vmid/config", proxyHandler.GetLXCConfig)
+			nodeGroup.PUT("/lxc/:vmid/config", proxyHandler.SetLXCConfig)
+			nodeGroup.POST("/lxc/:vmid/status/:action", proxyHandler.LXCAction)
+			nodeGroup.DELETE("/lxc/:vmid", proxyHandler.DeleteLXC)
+			nodeGroup.GET("/lxc/:vmid/snapshot", proxyHandler.GetLXCSnapshots)
+			nodeGroup.POST("/lxc/:vmid/snapshot", proxyHandler.CreateLXCSnapshot)
+			nodeGroup.DELETE("/lxc/:vmid/snapshot/:snapname", proxyHandler.DeleteLXCSnapshot)
+		}
 	}
 }
