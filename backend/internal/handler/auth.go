@@ -275,7 +275,7 @@ func (h *AuthHandler) GetAuditLogs(c *gin.Context) {
 }
 
 func generateJWT(username, host string, port int, realm, creds string) (string, int64, error) {
-	expiresIn := int64(24 * 3600)
+	expiresIn := int64(7 * 24 * 3600) // 7天
 	now := time.Now()
 	claims := Claims{
 		Username: username, Host: host, Port: port, Realm: realm, Creds: creds,
