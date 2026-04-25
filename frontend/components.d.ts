@@ -18,6 +18,7 @@ declare module 'vue' {
     ConsoleToolbar: typeof import('./src/components/console/ConsoleToolbar.vue')['default']
     CreateBackupDialog: typeof import('./src/components/backup/CreateBackupDialog.vue')['default']
     CreateStorageDialog: typeof import('./src/components/storage/CreateStorageDialog.vue')['default']
+    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBadge: typeof import('element-plus/es')['ElBadge']

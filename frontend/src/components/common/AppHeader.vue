@@ -1,44 +1,49 @@
 <template>
-  <el-header class="app-header" height="56px">
+  <header class="app-header" height="64px">
     <div class="header-left">
-      <el-button text class="collapse-btn" @click="$emit('toggle')">
-        <el-icon :size="18">
-          <Fold v-if="!collapsed" />
-          <Expand v-else />
-        </el-icon>
-      </el-button>
-
       <div class="breadcrumb-wrapper">
-        <span class="breadcrumb-title">{{ t('layout.dashboard') }}</span>
-        <span v-if="pageTitle" class="breadcrumb-separator">/</span>
-        <span v-if="pageTitle" class="breadcrumb-current">{{ pageTitle }}</span>
+        <span class="breadcrumb-title">首页</span>
+        <span v-if="$route.path !== '/dashboard'" class="breadcrumb-separator">/</span>
+        <span v-if="$route.path !== '/dashboard'" class="breadcrumb-current">
+          {{ $route.meta.title || '页面' }}
+        </span>
       </div>
     </div>
 
     <div class="header-right">
-      <el-badge :value="notificationCount" :hidden="notificationCount === 0" class="notification-badge">
-        <el-button text class="header-icon-btn" @click="handleNotification">
+      <div class="search-box">
+        <el-input placeholder="搜索功能..." size="small" clearable class="search-input">
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+        <kbd class="search-shortcut">⌘K</kbd>
+      </div>
+
+      <el-tooltip content="通知" placement="bottom">
+        <el-button text class="header-icon-btn">
           <el-icon :size="18"><Bell /></el-icon>
         </el-button>
-      </el-badge>
+      </el-tooltip>
 
-      <el-badge :value="taskStore.taskCount" :hidden="taskStore.taskCount === 0" class="task-badge">
-        <el-button text class="header-icon-btn" @click="handleOpenTaskCenter">
-          <el-icon :size="18"><List /></el-icon>
+      <el-tooltip content="设置" placement="bottom">
+        <el-button text class="header-icon-btn">
+          <el-icon :size="18"><Setting /></el-icon>
         </el-button>
-      </el-badge>
+      </el-tooltip>
 
-      <div class="system-status">
-        <span class="status-dot online"></span>
-        <span class="status-text">ONLINE</span>
-      </div>
+      <el-divider direction="vertical" class="header-divider" />
 
       <el-dropdown trigger="click" @command="handleCommand" class="user-dropdown">
         <div class="user-info">
-          <el-avatar :size="28" class="user-avatar">
-            {{ userInitial }}
+          <el-avatar :size="32" class="user-avatar">
+            A
           </el-avatar>
-          <span class="user-name">{{ userInfo?.username || 'Admin' }}</span>
+          <div class="user-details">
+            <span class="user-name">管理员</span>
+            <span class="user-role">Admin</span>
+          </div>
+          <el-icon class="dropdown-arrow"><ArrowDown /></el-icon>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -58,66 +63,27 @@
         </template>
       </el-dropdown>
     </div>
-  </el-header>
-
-  <TaskCenter v-model="taskCenterVisible" />
+  </header>
 </template>
+
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useTaskStore } from '@/stores/tasks'
 import {
-  Fold,
-  Expand,
   Bell,
-  User,
   Setting,
+  User,
   SwitchButton,
-  List,
+  Search,
+  ArrowDown,
 } from '@element-plus/icons-vue'
-import TaskCenter from './TaskCenter.vue'
 
-defineProps<{
-  collapsed: boolean
-}>()
-
-defineEmits<{
-  toggle: []
-}>()
-
-const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 const authStore = useAuthStore()
-const taskStore = useTaskStore()
-
-const pageTitle = computed(() => (route.meta.title as string) || '')
-
-const notificationCount = ref(3)
-
-function handleNotification() {
-  console.log('打开通知')
-}
-
-const userInfo = authStore.userInfo
-
-const userInitial = computed(() => {
-  const username = userInfo?.username || 'Admin'
-  return username.charAt(0).toUpperCase()
-})
-
-const taskCenterVisible = ref(false)
-
-function handleOpenTaskCenter() {
-  taskCenterVisible.value = true
-}
 
 function handleCommand(command: string) {
   switch (command) {
     case 'profile':
-      console.log('查看个人信息')
       break
     case 'settings':
       router.push('/settings')
@@ -130,51 +96,42 @@ function handleCommand(command: string) {
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  background: #111827;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  height: 64px;
+  padding: 0 24px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   z-index: 10;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
-
-  .collapse-btn {
-    padding: 4px;
-    color: #9ca3af;
-
-    &:hover {
-      color: #3b82f6;
-      background: rgba(59, 130, 246, 0.1);
-    }
-  }
+  gap: 16px;
 
   .breadcrumb-wrapper {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: 'JetBrains Mono', 'Consolas', monospace;
-    font-size: 13px;
+    font-size: 15px;
 
     .breadcrumb-title {
-      color: #6b7280;
+      color: #94a3b8;
+      font-weight: 500;
     }
 
     .breadcrumb-separator {
-      color: #4b5563;
+      color: #475569;
     }
 
     .breadcrumb-current {
-      color: #e5e7eb;
-      font-weight: 500;
+      color: #f8fafc;
+      font-weight: 600;
     }
   }
 }
@@ -182,94 +139,114 @@ function handleCommand(command: string) {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+
+  .search-box {
+    position: relative;
+    margin-right: 8px;
+
+    .search-input {
+      width: 200px;
+
+      :deep(.el-input__wrapper) {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        border-radius: 8px;
+      }
+
+      :deep(.el-input__inner) {
+        color: #e2e8f0;
+        font-size: 13px;
+      }
+    }
+
+    .search-shortcut {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 2px 6px;
+      background: rgba(51, 65, 85, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 10px;
+      color: #64748b;
+      pointer-events: none;
+    }
+  }
 
   .header-icon-btn {
     padding: 8px;
-    color: #9ca3af;
+    color: #64748b;
+    border-radius: 8px;
 
     &:hover {
-      color: #3b82f6;
-      background: rgba(59, 130, 246, 0.1);
+      color: #a5b4fc;
+      background: rgba(102, 126, 234, 0.1);
     }
   }
 
-  .notification-badge {
-    :deep(.el-badge__content) {
-      transform: translateY(-2px) translateX(4px);
-    }
-  }
-
-  .system-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 12px;
-    font-family: 'JetBrains Mono', 'Consolas', monospace;
-    font-size: 11px;
-
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 6px #10b981;
-      animation: pulse 2s infinite;
-    }
-
-    .status-text {
-      color: #10b981;
-      letter-spacing: 0.5px;
-    }
+  .header-divider {
+    margin: 0 4px;
+    background: rgba(148, 163, 184, 0.1);
   }
 
   .user-dropdown {
-    margin-left: 8px;
+    margin-left: 4px;
   }
 
   .user-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 10px;
     cursor: pointer;
-    padding: 4px 10px;
-    border-radius: 6px;
     transition: all 0.2s;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(102, 126, 234, 0.1);
     }
 
     .user-avatar {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
-      font-weight: 500;
-      font-size: 12px;
+      font-weight: 600;
+      font-size: 13px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
     }
 
-    .user-name {
-      color: #e5e7eb;
-      font-size: 13px;
-      font-weight: 500;
-      font-family: 'JetBrains Mono', 'Consolas', monospace;
+    .user-details {
+      display: flex;
+      flex-direction: column;
+
+      .user-name {
+        color: #f8fafc;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .user-role {
+        color: #64748b;
+        font-size: 11px;
+      }
+    }
+
+    .dropdown-arrow {
+      color: #64748b;
+      font-size: 12px;
+      transition: transform 0.2s;
     }
   }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
 }
 
 @media (max-width: 768px) {
-  .user-name {
+  .search-box {
     display: none;
   }
-  
-  .system-status {
+
+  .user-details {
     display: none;
   }
 }
