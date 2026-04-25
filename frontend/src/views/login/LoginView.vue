@@ -126,11 +126,12 @@
             <el-form-item label="用户名" prop="username">
               <el-input
                 v-model="form.username"
-                placeholder="root"
+                placeholder="例: root"
                 size="large"
                 prefix-icon="User"
                 clearable
               />
+              <p class="form-hint">完整格式: <code class="mono">{{ form.username || 'username' }}@{{ form.realm }}</code></p>
             </el-form-item>
 
             <el-form-item label="密码" prop="password">
@@ -371,13 +372,22 @@ async function runChecks() {
       checks.value[0] = { label: '网络连接', status: 'error', result: '连接失败' }
       checks.value[1] = { label: 'API 认证', status: 'pending', result: '未验证' }
       checks.value[2] = { label: '权限检查', status: 'pending', result: '未检查' }
-      formErrors.value = '登录失败，请检查凭据是否正确'
+      formErrors.value = '认证失败，请检查用户名和密码是否正确'
     }
-  } catch (e) {
+  } catch (e: any) {
     checks.value[0] = { label: '网络连接', status: 'error', result: '连接失败' }
     checks.value[1] = { label: 'API 认证', status: 'pending', result: '未验证' }
     checks.value[2] = { label: '权限检查', status: 'pending', result: '未检查' }
-    formErrors.value = '连接异常，请检查网络或服务器状态'
+
+    const errorMessage = e?.response?.data?.message || e?.message || ''
+    if (errorMessage.includes('authentication failure') || e?.response?.status === 401) {
+      const fullUsername = `${form.value.username}@${form.value.realm}`
+      formErrors.value = `认证失败：用户 "${fullUsername}" 的密码不正确`
+    } else if (errorMessage.includes('connect') || errorMessage.includes('timeout') || e?.code === 'ECONNABORTED' || e?.code === 'ERR_NETWORK') {
+      formErrors.value = `无法连接到 ${form.value.host}:${form.value.port}，请检查网络或 PVE 是否运行`
+    } else {
+      formErrors.value = `连接异常：${errorMessage || '请检查网络或服务器状态'}`
+    }
   } finally {
     checking.value = false
   }
@@ -598,6 +608,21 @@ async function handleLogin() {
     &.is-focus {
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+  }
+
+  .form-hint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #64748b;
+
+    code {
+      font-family: 'Fira Code', monospace;
+      color: #a5b4fc;
+      background: rgba(102, 126, 234, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
     }
   }
 
