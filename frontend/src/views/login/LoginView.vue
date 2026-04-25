@@ -642,11 +642,11 @@ async function handleLogin() {
     }
 
     .is-active .el-radio-button__inner {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      border-color: transparent;
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
+          background: linear-gradient(135deg, #7C3AED, #6D28D9);
+          border-color: transparent;
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
   }
 }
 
