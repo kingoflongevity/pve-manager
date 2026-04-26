@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, shallowRef } from 'vue'
 import { getClusterResources } from '@/api/cluster'
 import type {
   PVENode,
@@ -7,12 +7,21 @@ import type {
   PVECT,
   PVEStorage,
   PVENetwork,
-  TreeResourceData,
   ResourceStatus,
   ResourceType,
   ResourceListResponse,
   ClusterResource,
 } from '@/api/types'
+import {
+  ResourceTreeBuilder,
+  ResourceTypeEnum,
+  ResourceStatusEnum,
+  AbstractTreeNode,
+  TreeStatistics,
+  SearchOptions,
+  FilterOptions,
+  SearchScope,
+} from '@/models/resourceTree'
 
 /** 轮询间隔 (30 秒) */
 const POLL_INTERVAL = 30_000
@@ -22,9 +31,9 @@ const POLL_INTERVAL = 30_000
  *
  * 职责:
  * 1. 从 PVE API 获取节点/虚拟机/容器/存储/网络资源
- * 2. 构建树形数据结构供 Tree 组件消费
+ * 2. 使用抽象资源树构建器构建分组树结构
  * 3. 支持 30 秒定时轮询刷新
- * 4. 暴露 resourceTree、selectedNode、expandedKeys 等计算属性
+ * 4. 提供搜索、过滤、统计等能力
  */
 export const useResourceStore = defineStore('resources', () => {
   // ============================================================
@@ -32,17 +41,17 @@ export const useResourceStore = defineStore('resources', () => {
   // ============================================================
 
   /** 节点列表 */
-  const nodes = ref<PVENode[]>([])
+  const nodes = shallowRef<PVENode[]>([])
   /** 虚拟机列表 */
-  const vms = ref<PVEVM[]>([])
+  const vms = shallowRef<PVEVM[]>([])
   /** 容器列表 */
-  const containers = ref<PVECT[]>([])
+  const containers = shallowRef<PVECT[]>([])
   /** 存储列表 */
-  const storages = ref<PVEStorage[]>([])
+  const storages = shallowRef<PVEStorage[]>([])
   /** 网络列表 */
-  const networks = ref<PVENetwork[]>([])
+  const networks = shallowRef<PVENetwork[]>([])
 
-  /** 树形展开的节点 ID 集合 */
+  /** 树形展开的节点 ID 列表 */
   const expandedKeys = ref<string[]>(['datacenter-root'])
   /** 当前选中的树节点 ID */
   const selectedNodeId = ref<string | null>(null)
@@ -56,44 +65,51 @@ export const useResourceStore = defineStore('resources', () => {
   /** 轮询定时器 */
   let pollTimer: ReturnType<typeof setInterval> | null = null
 
+  /** 资源树构建器实例 */
+  const treeBuilder = new ResourceTreeBuilder()
+
   // ============================================================
   // Getters
   // ============================================================
 
   /**
-   * 构建完整的树形数据结构
-   * 层级: 数据中心 -> 节点 -> (虚拟机/容器/存储/网络)
+   * 构建完整的树形数据结构 (使用抽象模型)
+   * 新层级: 数据中心 -> 节点 -> 资源分组 -> 具体资源
    */
-  const resourceTree = computed<TreeResourceData[]>(() => {
-    const dcChildren = nodes.value.map((node) =>
-      buildNodeTree(node, vms.value, containers.value, storages.value, networks.value),
+  const resourceTree = computed<AbstractTreeNode[]>(() => {
+    const tree = treeBuilder.buildTree(
+      nodes.value,
+      vms.value,
+      containers.value,
+      storages.value,
+      networks.value,
     )
 
-    const tree: TreeResourceData[] = [
-      {
-        id: 'datacenter-root',
-        name: '数据中心',
-        type: 'datacenter' as ResourceType,
-        status: 'running' as ResourceStatus,
-        icon: 'DataCenter',
-        children: dcChildren,
-      },
-    ]
-
-    // 如果有搜索关键词，过滤树节点
-    if (searchQuery.value.trim()) {
-      return filterTree(tree, searchQuery.value.trim().toLowerCase())
-    }
-
-    return tree
+    // 应用搜索和过滤
+    const searchOpts = buildSearchOptions(searchQuery.value)
+    return treeBuilder.filterTree(tree, searchOpts)
   })
 
   /**
    * 当前选中的资源节点
    */
-  const selectedNode = computed<TreeResourceData | null>(() => {
+  const selectedNode = computed<AbstractTreeNode | null>(() => {
     if (!selectedNodeId.value) return null
-    return findNodeInTree(resourceTree.value, selectedNodeId.value)
+    return treeBuilder.findNodeById(resourceTree.value, selectedNodeId.value)
+  })
+
+  /**
+   * 资源统计摘要
+   */
+  const statistics = computed<TreeStatistics>(() => {
+    return treeBuilder.computeStatistics(resourceTree.value)
+  })
+
+  /**
+   * 默认展开的节点 ID
+   */
+  const defaultExpandedKeys = computed<string[]>(() => {
+    return treeBuilder.getDefaultExpandedKeys(resourceTree.value)
   })
 
   // ============================================================
@@ -114,6 +130,11 @@ export const useResourceStore = defineStore('resources', () => {
       containers.value = parsed.containers
       storages.value = parsed.storages
       networks.value = parsed.networks
+
+      // 首次加载时设置默认展开
+      if (lastRefreshedAt.value === null) {
+        expandedKeys.value = defaultExpandedKeys.value
+      }
 
       lastRefreshedAt.value = new Date()
     } catch (error) {
@@ -161,7 +182,7 @@ export const useResourceStore = defineStore('resources', () => {
    * 展开所有树节点
    */
   function expandAll(): void {
-    expandedKeys.value = collectAllNodeIds(resourceTree.value)
+    expandedKeys.value = treeBuilder.collectAllNodeIds(resourceTree.value)
   }
 
   /**
@@ -176,6 +197,13 @@ export const useResourceStore = defineStore('resources', () => {
    */
   async function refresh(): Promise<void> {
     await fetchResources()
+  }
+
+  /**
+   * 设置展开的节点
+   */
+  function setExpandedKeys(keys: string[]): void {
+    expandedKeys.value = keys
   }
 
   return {
@@ -193,6 +221,8 @@ export const useResourceStore = defineStore('resources', () => {
     // Getters
     resourceTree,
     selectedNode,
+    statistics,
+    defaultExpandedKeys,
     // Actions
     fetchResources,
     startPolling,
@@ -202,12 +232,25 @@ export const useResourceStore = defineStore('resources', () => {
     expandAll,
     collapseAll,
     refresh,
+    setExpandedKeys,
   }
 })
 
 // ============================================================
 // 内部工具函数
 // ============================================================
+
+/**
+ * 构建搜索选项
+ */
+function buildSearchOptions(query: string): SearchOptions | undefined {
+  if (!query.trim()) return undefined
+  return {
+    query: query.trim(),
+    fuzzy: true,
+    scope: SearchScope.All,
+  }
+}
 
 /**
  * 解析集群资源数据，按类型分类
@@ -312,152 +355,4 @@ function normalizeVMStatus(status?: string): ResourceStatus {
     default:
       return 'unknown'
   }
-}
-
-/**
- * 将节点及其子资源构建为树形结构
- */
-function buildNodeTree(
-  node: PVENode,
-  vms: PVEVM[],
-  containers: PVECT[],
-  storages: PVEStorage[],
-  networks: PVENetwork[],
-): TreeResourceData {
-  const status = getNodeStatus(node)
-
-  const children: TreeResourceData[] = [
-    ...node.children || [],
-    ...vms
-      .filter((vm) => vm.node === node.name)
-      .map((vm) => mapVMToTreeNode(vm)),
-    ...containers
-      .filter((ct) => ct.node === node.name)
-      .map((ct) => mapCTToTreeNode(ct)),
-    ...storages
-      .filter((s) => s.node === node.name)
-      .map((s) => mapStorageToTreeNode(s)),
-    ...networks
-      .filter((n) => n.node === node.name)
-      .map((n) => mapNetworkToTreeNode(n)),
-  ]
-
-  return {
-    id: `node-${node.name}`,
-    name: node.name,
-    type: node.type,
-    status,
-    icon: 'Server',
-    children: children.length > 0 ? children : undefined,
-  }
-}
-
-/**
- * 根据节点资源使用情况推断状态
- */
-function getNodeStatus(node: PVENode): ResourceStatus {
-  if (node.cpuUsage !== undefined && node.cpuUsage > 95) {
-    return 'error' as ResourceStatus
-  }
-  if (node.cpuUsage !== undefined || node.memoryUsage !== undefined) {
-    return 'running' as ResourceStatus
-  }
-  return 'unknown' as ResourceStatus
-}
-
-/** 将虚拟机映射为树节点 */
-function mapVMToTreeNode(vm: PVEVM): TreeResourceData {
-  return {
-    id: `vm-${vm.vmid}`,
-    name: vm.name || `VM ${vm.vmid}`,
-    type: vm.type,
-    status: vm.status,
-    icon: 'Monitor',
-  }
-}
-
-/** 将容器映射为树节点 */
-function mapCTToTreeNode(ct: PVECT): TreeResourceData {
-  return {
-    id: `ct-${ct.ctid}`,
-    name: ct.name || `CT ${ct.ctid}`,
-    type: ct.type,
-    status: ct.status,
-    icon: 'Box',
-  }
-}
-
-/** 将存储映射为树节点 */
-function mapStorageToTreeNode(storage: PVEStorage): TreeResourceData {
-  return {
-    id: `storage-${storage.name}`,
-    name: storage.name,
-    type: storage.type,
-    status: storage.active ? 'running' as ResourceStatus : 'stopped' as ResourceStatus,
-    icon: 'FolderOpened',
-  }
-}
-
-/** 将网络映射为树节点 */
-function mapNetworkToTreeNode(network: PVENetwork): TreeResourceData {
-  return {
-    id: `network-${network.name}`,
-    name: network.name,
-    type: network.type,
-    status: network.active ? 'running' as ResourceStatus : 'stopped' as ResourceStatus,
-    icon: 'Connection',
-  }
-}
-
-/**
- * 递归过滤树节点：匹配名称或子节点中有匹配项的节点保留
- */
-function filterTree(
-  tree: TreeResourceData[],
-  query: string,
-): TreeResourceData[] {
-  return tree.reduce<TreeResourceData[]>((result, node) => {
-    const nameMatch = node.name.toLowerCase().includes(query)
-    const filteredChildren = node.children
-      ? filterTree(node.children, query)
-      : undefined
-
-    // 自身匹配或有匹配的子节点则保留
-    if (nameMatch || (filteredChildren && filteredChildren.length > 0)) {
-      result.push({
-        ...node,
-        children: filteredChildren,
-      })
-    }
-
-    return result
-  }, [])
-}
-
-/** 在树中查找指定 ID 的节点 */
-function findNodeInTree(
-  tree: TreeResourceData[],
-  nodeId: string,
-): TreeResourceData | null {
-  for (const node of tree) {
-    if (node.id === nodeId) {
-      return node
-    }
-    if (node.children) {
-      const found = findNodeInTree(node.children, nodeId)
-      if (found) return found
-    }
-  }
-  return null
-}
-
-/** 收集树中所有节点的 ID */
-function collectAllNodeIds(tree: TreeResourceData[]): string[] {
-  return tree.reduce<string[]>((ids, node) => {
-    ids.push(node.id)
-    if (node.children) {
-      ids.push(...collectAllNodeIds(node.children))
-    }
-    return ids
-  }, [])
 }

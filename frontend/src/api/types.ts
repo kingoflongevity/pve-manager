@@ -705,7 +705,7 @@ export interface TaskResult {
 }
 
 // ============================================================
-// 数据中心资源类型（用于 tree 组件）
+// 数据中心资源类型（用于 tree 组件 - 向后兼容）
 // ============================================================
 
 /** 资源类型 */
@@ -714,7 +714,7 @@ export type ResourceType = 'datacenter' | 'node' | 'vm' | 'ct' | 'storage' | 'ne
 /** 资源状态 */
 export type ResourceStatus = 'running' | 'stopped' | 'paused' | 'error' | 'unknown' | 'frozen'
 
-/** 树形资源数据 */
+/** 树形资源数据 (旧版 - 保留兼容) */
 export interface TreeResourceData {
   id: string
   name: string

@@ -9,6 +9,7 @@ import router from './router'
 import i18n from './locales'
 
 import './assets/styles/global.scss'
+import './assets/styles/themes.scss'
 
 /**
  * 应用初始化入口

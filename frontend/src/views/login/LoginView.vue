@@ -396,7 +396,7 @@ async function runChecks() {
 async function handleLogin() {
   if (!canLogin.value) return
   ElMessage.success('登录成功，正在跳转...')
-  router.push('/dashboard')
+  router.push('/')
 }
 </script>
 

@@ -1,24 +1,27 @@
 <template>
-  <header class="app-header" height="64px">
+  <header class="app-header">
     <div class="header-left">
+      <el-button text class="menu-toggle-btn" @click="$emit('toggle')">
+        <el-icon :size="18"><Fold /></el-icon>
+      </el-button>
       <div class="breadcrumb-wrapper">
         <span class="breadcrumb-title">首页</span>
-        <span v-if="$route.path !== '/dashboard'" class="breadcrumb-separator">/</span>
-        <span v-if="$route.path !== '/dashboard'" class="breadcrumb-current">
+        <span v-if="$route.path !== '/'" class="breadcrumb-separator">/</span>
+        <span v-if="$route.path !== '/'" class="breadcrumb-current">
           {{ $route.meta.title || '页面' }}
         </span>
       </div>
     </div>
 
     <div class="header-right">
-      <div class="search-box">
-        <el-input placeholder="搜索功能..." size="small" clearable class="search-input">
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <kbd class="search-shortcut">⌘K</kbd>
-      </div>
+      <el-tooltip :content="isLight ? '暗色主题' : '亮色主题'" placement="bottom">
+        <el-button text class="header-icon-btn" @click="toggleTheme">
+          <el-icon :size="18">
+            <Sunny v-if="isDark" />
+            <Moon v-else />
+          </el-icon>
+        </el-button>
+      </el-tooltip>
 
       <el-tooltip content="通知" placement="bottom">
         <el-button text class="header-icon-btn">
@@ -69,17 +72,21 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useTheme } from '@/composables/useTheme'
 import {
   Bell,
   Setting,
   User,
   SwitchButton,
-  Search,
   ArrowDown,
+  Fold,
+  Sunny,
+  Moon,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { toggleTheme, isLight, isDark } = useTheme()
 
 function handleCommand(command: string) {
   switch (command) {
@@ -97,41 +104,53 @@ function handleCommand(command: string) {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/variables' as *;
+
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 64px;
-  padding: 0 24px;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  padding: 0 $spacing-6;
+  background: $color-bg-container;
+  border-bottom: 1px solid $color-border-light;
   z-index: 10;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: $spacing-4;
+
+  .menu-toggle-btn {
+    padding: $spacing-2;
+    color: $color-text-secondary;
+    border-radius: $radius-base;
+
+    &:hover {
+      color: $green-400;
+      background: $color-bg-hover;
+    }
+  }
 
   .breadcrumb-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 15px;
+    gap: $spacing-2;
+    font-size: $font-size-base;
 
     .breadcrumb-title {
-      color: #94a3b8;
-      font-weight: 500;
+      color: $color-text-secondary;
+      font-weight: $font-weight-medium;
     }
 
     .breadcrumb-separator {
-      color: #475569;
+      color: $slate-600;
     }
 
     .breadcrumb-current {
-      color: #f8fafc;
-      font-weight: 600;
+      color: $color-text-primary;
+      font-weight: $font-weight-semibold;
     }
   }
 }
@@ -139,57 +158,22 @@ function handleCommand(command: string) {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-
-  .search-box {
-    position: relative;
-    margin-right: 8px;
-
-    .search-input {
-      width: 200px;
-
-      :deep(.el-input__wrapper) {
-        background: rgba(30, 41, 59, 0.4);
-        border: 1px solid rgba(148, 163, 184, 0.1);
-        border-radius: 8px;
-      }
-
-      :deep(.el-input__inner) {
-        color: #e2e8f0;
-        font-size: 13px;
-      }
-    }
-
-    .search-shortcut {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      padding: 2px 6px;
-      background: rgba(51, 65, 85, 0.6);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-      border-radius: 4px;
-      font-family: 'Fira Code', monospace;
-      font-size: 10px;
-      color: #64748b;
-      pointer-events: none;
-    }
-  }
+  gap: $spacing-2;
 
   .header-icon-btn {
-    padding: 8px;
-    color: #64748b;
-    border-radius: 8px;
+    padding: $spacing-2;
+    color: $slate-500;
+    border-radius: $radius-base;
 
     &:hover {
-      color: #a5b4fc;
-      background: rgba(102, 126, 234, 0.1);
+      color: $green-400;
+      background: $color-bg-hover;
     }
   }
 
   .header-divider {
     margin: 0 4px;
-    background: rgba(148, 163, 184, 0.1);
+    background: $color-border-light;
   }
 
   .user-dropdown {
@@ -199,21 +183,21 @@ function handleCommand(command: string) {
   .user-info {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 12px;
-    border-radius: 10px;
+    gap: $spacing-3;
+    padding: $spacing-2 $spacing-3;
+    border-radius: $radius-md;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: $transition-base;
 
     &:hover {
-      background: rgba(102, 126, 234, 0.1);
+      background: $color-bg-hover;
     }
 
     .user-avatar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, $green-500 0%, $emerald-500 100%);
       color: #fff;
-      font-weight: 600;
-      font-size: 13px;
+      font-weight: $font-weight-semibold;
+      font-size: $font-size-sm;
       border: 2px solid rgba(255, 255, 255, 0.1);
     }
 
@@ -222,21 +206,21 @@ function handleCommand(command: string) {
       flex-direction: column;
 
       .user-name {
-        color: #f8fafc;
-        font-size: 13px;
-        font-weight: 500;
+        color: $color-text-primary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
       }
 
       .user-role {
-        color: #64748b;
-        font-size: 11px;
+        color: $slate-500;
+        font-size: $font-size-xs;
       }
     }
 
     .dropdown-arrow {
-      color: #64748b;
-      font-size: 12px;
-      transition: transform 0.2s;
+      color: $slate-500;
+      font-size: $font-size-xs;
+      transition: transform $transition-base;
     }
   }
 }

@@ -9,7 +9,7 @@ import type { Task } from './taskTypes'
  * 获取集群所有任务列表
  */
 export function fetchTasks(): Promise<{ data: Task[] }> {
-  return get('/cluster/tasks')
+  return get('/pve/cluster/tasks')
 }
 
 /**
@@ -17,7 +17,7 @@ export function fetchTasks(): Promise<{ data: Task[] }> {
  * @param upid - 任务 UPID
  */
 export function fetchTaskLog(upid: string): Promise<{ data: string }> {
-  return get(`/cluster/tasks/${encodeURIComponent(upid)}/log`)
+  return get(`/pve/nodes/${extractNodeFromUPID(upid)}/tasks/${encodeURIComponent(upid)}/log`)
 }
 
 /**
@@ -26,5 +26,14 @@ export function fetchTaskLog(upid: string): Promise<{ data: string }> {
  * @param limit - 返回条数限制
  */
 export function fetchNodeTasks(node: string, limit = 50): Promise<{ data: Task[] }> {
-  return get(`/nodes/${node}/tasks`, { limit })
+  return get(`/pve/nodes/${node}/tasks`, { limit })
+}
+
+/**
+ * 从 UPID 字符串中提取节点名称
+ * UPID 格式: UPID:node:0001:...
+ */
+function extractNodeFromUPID(upid: string): string {
+  const parts = upid.split(':')
+  return parts.length >= 2 ? parts[1] : 'unknown'
 }

@@ -1,182 +1,149 @@
 /**
- * PVE 私有云管理平台设计令牌系统
- * 基于 ui-ux-pro-max 设计系统推荐
- * 参考 vSphere、VMware Cloud、OpenStack Horizon、Proxmox 等本地私有云平台设计规范
- * 采用 Data-Dense Dashboard 模式：高密度数据展示、最小化留白、效率优先
+ * PVE Manager Design System Variables
+ * Based on ui-ux-pro-max: Dark Mode (OLED) + Data-Dense Dashboard
+ * 
+ * 所有语义颜色变量引用 CSS 自定义属性（var(--color-xxx)），
+ * 运行时可通过 themes.scss 中的 .theme-dark / .theme-light 切换。
+ * 
+ * 布局/排版变量（间距、字体、圆角、阴影、Z-index）保持固定，
+ * 因为它们不随主题变化。
  */
 
 // ============================================================
-// 颜色系统 - 本地私有云管理风格
-// 主色：深钴蓝（Cobalt Blue）- 传达稳定、专业、可信赖
-// 辅助色：翡翠绿（Emerald）- 表示健康、运行中状态
-// 强调色：琥珀橙（Amber）- 用于重要操作和警告
-// 遵循 vSphere / VMware Cloud / OpenStack 设计语言
+// OLED Dark Theme Color Palette (fixed reference values)
 // ============================================================
 
-// 主色调 - 深钴蓝（本地私有云管理平台风格）
-$primary-1: #f0f5ff;
-$primary-2: #d6e4ff;
-$primary-3: #adc6ff;
-$primary-4: #85a5ff;
-$primary-5: #597ef7;
-$primary-6: #1d39c4;  // 主色基准 - 深钴蓝
-$primary-7: #10239e;
-$primary-8: #061178;
-$primary-9: #030852;
-$primary-10: #00052c;
+// Slate scale (background layers) - includes $gray aliases for compatibility
+$slate-950: #020617;  // Background - deepest
+$slate-900: #0F172A;  // Card/Container
+$slate-800: #1E293B;  // Header/Elevated
+$slate-700: #334155;  // Borders
+$slate-600: #475569;  // Disabled/Inactive
+$slate-500: #64748B;  // Secondary text
+$slate-400: #94A3B8;  // Muted text
+$slate-300: #CBD5E1;  // Regular text
+$slate-200: #E2E8F0;  // Bright text
+$slate-100: #F1F5F9;  // Highlight
+$slate-50: #F8FAFC;   // Primary text (white)
 
-// 成功色 - 翡翠绿（健康运行状态）
-$success-1: #f0fff4;
-$success-2: #c6f6d5;
-$success-3: #9ae6b4;
-$success-4: #68d391;
-$success-5: #38b2ac;
-$success-6: #10b981;  // 成功色基准 - 翡翠绿
-$success-7: #059669;
-$success-8: #047857;
-$success-9: #065f46;
-$success-10: #064e3b;
-
-// 警告色 - 琥珀橙
-$warning-1: #fffbeb;
-$warning-2: #fef3c7;
-$warning-3: #fde68a;
-$warning-4: #fbbf24;
-$warning-5: #f59e0b;
-$warning-6: #d97706;  // 警告色基准 - 琥珀橙
-$warning-7: #b45309;
-$warning-8: #92400e;
-$warning-9: #78350f;
-$warning-10: #451a03;
-
-// 危险色 - 深红
-$danger-1: #fef2f2;
-$danger-2: #fecaca;
-$danger-3: #fca5a5;
-$danger-4: #f87171;
-$danger-5: #ef4444;
-$danger-6: #dc2626;  // 危险色基准 - 深红
-$danger-7: #b91c1c;
-$danger-8: #991b1b;
-$danger-9: #7f1d1d;
-$danger-10: #450a0a;
-
-// 信息色 - 天蓝
-$info-1: #eff6ff;
-$info-2: #bfdbfe;
-$info-3: #93c5fd;
-$info-4: #60a5fa;
-$info-5: #3b82f6;
-$info-6: #2563eb;  // 信息色基准 - 天蓝
-$info-7: #1d4ed8;
-$info-8: #1e40af;
-$info-9: #1e3a8a;
-$info-10: #172554;
-
-// 中性灰 - 文字层级（更冷更专业的色调）
-$gray-1: #ffffff;
-$gray-2: #f8fafc;
-$gray-3: #f1f5f9;
-$gray-4: #e2e8f0;
-$gray-5: #cbd5e1;
-$gray-6: #94a3b8;
-$gray-7: #64748b;
-$gray-8: #475569;
-$gray-9: #334155;
-$gray-10: #1e293b;
-$gray-11: #0f172a;
-$gray-12: #020617;
+// Gray aliases (for backwards compatibility with existing components)
+$gray-1: $slate-900;
+$gray-2: $slate-950;
+$gray-3: $slate-800;
+$gray-4: $slate-700;
+$gray-5: $slate-600;
+$gray-6: $slate-500;
+$gray-7: $slate-400;
+$gray-8: $slate-300;
+$gray-9: $slate-200;
+$gray-10: $slate-50;
+$gray-11: $slate-100;
+$gray-12: $slate-950;
 $gray-13: #000000;
 
-// ============================================================
-// 语义化颜色变量
-// ============================================================
+// Green scale (CTA & success) - 品牌色不随主题变化
+$green-500: #22C55E;
+$green-400: #4ADE80;
+$green-600: #16A34A;
+$green-700: #15803D;
+$green-900: #14532D;
 
-// 主色系
-$color-primary: $primary-6;
-$color-primary-light: $primary-4;
-$color-primary-dark: $primary-8;
-$color-primary-bg: $primary-1;
-$color-primary-hover: $primary-5;
-$color-primary-active: $primary-7;
+// Red scale (danger & errors)
+$red-500: #EF4444;
+$red-400: #F87171;
+$red-600: #DC2626;
 
-// 状态色系
-$color-success: $success-6;
-$color-success-bg: $success-1;
-$color-success-border: $success-2;
+// Orange scale (warnings)
+$orange-500: #F97316;
+$orange-400: #FB923C;
 
-$color-warning: $warning-6;
-$color-warning-bg: $warning-1;
-$color-warning-border: $warning-2;
+// Blue scale (info & links)
+$blue-500: #3B82F6;
+$blue-400: #60A5FA;
 
-$color-danger: $danger-6;
-$color-danger-bg: $danger-1;
-$color-danger-border: $danger-2;
-
-$color-info: $info-6;
-$color-info-bg: $info-1;
-$color-info-border: $info-2;
-
-// 文字色系
-$color-text-primary: $gray-10;
-$color-text-regular: $gray-8;
-$color-text-secondary: $gray-7;
-$color-text-placeholder: $gray-6;
-$color-text-disabled: $gray-5;
-
-// 边框色
-$color-border-base: $gray-4;
-$color-border-light: $gray-3;
-$color-border-lighter: $gray-2;
-$color-border-dark: $gray-5;
-
-// 背景色
-$color-bg-container: $gray-1;
-$color-bg-layout: $gray-2;
-$color-bg-elevated: $gray-1;
-$color-bg-spotlight: $gray-10;
-$color-bg-mask: rgba(15, 23, 42, 0.6);
+// Emerald scale (alternative success)
+$emerald-500: #10B981;
+$emerald-400: #34D399;
+$emerald-600: #059669;
 
 // ============================================================
-// 布局尺寸 - 高密度数据展示（Data-Dense Dashboard）
+// Semantic Color Mapping (运行时通过 CSS 变量切换)
 // ============================================================
 
-// 侧边栏 - 深色主题（vSphere 风格）
-$sidebar-width: 260px;
-$sidebar-collapsed-width: 64px;
-$sidebar-bg: #0f172a;       // 深石板蓝
-$sidebar-bg-dark: #020617;  // 更深的暗色
+// Primary UI colors
+$primary-color: var(--color-primary, $green-500);
+$primary-hover: var(--color-primary-hover, $green-400);
+$primary-active: var(--color-primary-active, $green-600);
+$primary-bg: var(--color-primary-bg, rgba(34, 197, 94, 0.15));
+$primary-border: var(--color-primary-border, rgba(34, 197, 94, 0.25));
 
-// 顶部导航 - 白色简洁
-$header-height: 56px;
-$header-bg: $gray-1;
+// Aliases for backwards compatibility
+$color-primary: $primary-color;
+$color-primary-light: $primary-hover;
+$color-primary-dark: $primary-active;
 
-// 内容区 - 降低背景对比度
-$main-content-bg: $gray-2;
-$page-padding: 16px;  // 减小内边距以增加数据密度
+// Status colors
+$success-color: var(--color-success, $green-500);
+$success-bg: var(--color-success-bg, rgba(34, 197, 94, 0.15));
+$success-border: var(--color-success-border, rgba(34, 197, 94, 0.25));
 
-// 响应式断点
-$breakpoint-xs: 480px;
-$breakpoint-sm: 576px;
-$breakpoint-md: 768px;
-$breakpoint-lg: 992px;
-$breakpoint-xl: 1200px;
-$breakpoint-xxl: 1600px;
+// Aliases for backwards compatibility
+$color-success: $success-color;
+$color-success-bg: $success-bg;
+
+$warning-color: var(--color-warning, $orange-400);
+$warning-bg: var(--color-warning-bg, rgba(251, 146, 60, 0.15));
+$warning-border: var(--color-warning-border, rgba(251, 146, 60, 0.25));
+$warning-6: $warning-color;
+
+$danger-color: var(--color-danger, $red-500);
+$danger-bg: var(--color-danger-bg, rgba(239, 68, 68, 0.15));
+$danger-border: var(--color-danger-border, rgba(239, 68, 68, 0.25));
+
+// Aliases for backwards compatibility
+$color-danger: $danger-color;
+$color-danger-bg: $danger-bg;
+
+$info-color: var(--color-info, $blue-400);
+$info-bg: var(--color-info-bg, rgba(96, 165, 250, 0.15));
+$info-border: var(--color-info-border, rgba(96, 165, 250, 0.25));
+
+// Aliases for backwards compatibility
+$color-info: $info-color;
+$color-info-bg: $info-bg;
 
 // ============================================================
-// 圆角系统 - 更紧凑的圆角（vSphere 风格）
+// Background Colors (运行时通过 CSS 变量切换)
 // ============================================================
 
-$radius-xs: 2px;
-$radius-sm: 4px;
-$radius-base: 6px;
-$radius-md: 8px;
-$radius-lg: 12px;
-$radius-xl: 16px;
-$radius-full: 9999px;
+$color-bg-base: var(--color-bg-base, $slate-950);
+$color-bg-container: var(--color-bg-container, $slate-900);
+$color-bg-elevated: var(--color-bg-elevated, $slate-800);
+$color-bg-hover: var(--color-bg-hover, rgba(34, 197, 94, 0.08));
+$color-bg-active: var(--color-bg-active, rgba(34, 197, 94, 0.12));
+$color-bg-mask: var(--loading-mask, rgba(2, 6, 23, 0.85));
 
 // ============================================================
-// 间距系统 (4px 基础网格，更紧凑)
+// Text Colors (运行时通过 CSS 变量切换)
+// ============================================================
+
+$color-text-primary: var(--color-text-primary, $slate-50);
+$color-text-regular: var(--color-text-regular, $slate-200);
+$color-text-secondary: var(--color-text-secondary, $slate-400);
+$color-text-placeholder: var(--color-text-placeholder, $slate-500);
+$color-text-disabled: var(--color-text-disabled, $slate-600);
+
+// ============================================================
+// Border Colors (运行时通过 CSS 变量切换)
+// ============================================================
+
+$color-border-base: var(--color-border-base, $slate-700);
+$color-border-light: var(--color-border-light, $slate-800);
+$color-border-lighter: var(--color-border-lighter, rgba($slate-700, 0.6));
+$color-border-focus: var(--color-border-focus, $green-500);
+
+// ============================================================
+// Spacing (8px grid) - 不随主题变化
 // ============================================================
 
 $spacing-1: 4px;
@@ -188,107 +155,110 @@ $spacing-6: 24px;
 $spacing-8: 32px;
 $spacing-10: 40px;
 $spacing-12: 48px;
-$spacing-16: 64px;
-$spacing-20: 80px;
 
 // ============================================================
-// 阴影系统 - 更微妙的阴影（专业风格）
+// Typography - 不随主题变化
 // ============================================================
 
-// 基础阴影
-$shadow-1: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-2: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-$shadow-3: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-$shadow-4: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+$font-family-base: 'Fira Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+$font-family-mono: 'Fira Code', 'Consolas', 'Monaco', monospace;
+$font-family-code: $font-family-mono;
 
-// 功能阴影
-$shadow-card: $shadow-1;
-$shadow-card-hover: $shadow-2;
-$shadow-dropdown: $shadow-3;
-$shadow-popover: $shadow-3;
-$shadow-modal: $shadow-4;
-$shadow-header: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-
-// ============================================================
-// 字体系统 - 专业等宽混合
-// ============================================================
-
-// 字体家族 - 加入 Fira Sans 作为 ui-ux-pro-max 推荐
-$font-family-base:
-  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-  'Noto Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-$font-family-code: 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-
-// 字号 - 更紧凑
 $font-size-xs: 11px;
 $font-size-sm: 12px;
-$font-size-base: 13px;
-$font-size-md: 14px;
-$font-size-lg: 15px;
-$font-size-xl: 16px;
-$font-size-2xl: 18px;
-$font-size-3xl: 20px;
-$font-size-4xl: 24px;
-$font-size-5xl: 28px;
+$font-size-base: 14px;
+$font-size-lg: 16px;
+$font-size-xl: 18px;
+$font-size-2xl: 20px;
+$font-size-3xl: 24px;
+$font-size-4xl: 30px;
 
-// 字重
+$font-size-md: $font-size-base; // alias
+
 $font-weight-light: 300;
-$font-weight-regular: 400;
+$font-weight-normal: 400;
 $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
-// 行高 - 更紧凑
 $line-height-xs: 1.2;
-$line-height-sm: 1.3;
-$line-height-base: 1.4;
-$line-height-lg: 1.6;
+$line-height-sm: 1.4;
+$line-height-base: 1.6;
+$line-height-lg: 2;
 
 // ============================================================
-// 动画系统
+// Border Radius - 不随主题变化
 // ============================================================
 
-// 动画时长 - 更快响应
-$duration-fast: 0.1s;
-$duration-normal: 0.15s;
-$duration-slow: 0.2s;
-$duration-slower: 0.3s;
-
-// 动画缓动
-$ease-base: cubic-bezier(0.4, 0, 0.2, 1);
-$ease-in: cubic-bezier(0.4, 0, 1, 1);
-$ease-out: cubic-bezier(0, 0, 0.2, 1);
-$ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-
-// 动画函数
-$transition-base: all $duration-normal $ease-base;
-$transition-fast: all $duration-fast $ease-base;
-$transition-slow: all $duration-slow $ease-base;
+$radius-xs: 4px;
+$radius-sm: 6px;
+$radius-base: 8px;
+$radius-md: 10px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+$radius-full: 9999px;
 
 // ============================================================
-// Z-Index 层级
+// Shadows (运行时通过 CSS 变量切换)
 // ============================================================
 
-$z-index-dropdown: 1050;
-$z-index-sticky: 1020;
-$z-index-fixed: 1030;
-$z-index-modal-backdrop: 1040;
-$z-index-modal: 1050;
-$z-index-popover: 1030;
-$z-index-tooltip: 1060;
-$z-index-drawer: 1055;
+$shadow-sm: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.3));
+$shadow-base: var(--shadow-base, 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3));
+$shadow-lg: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4));
+$shadow-xl: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4));
+$shadow-card: var(--shadow-card, 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+$shadow-card-hover: var(--shadow-card-hover, 0 8px 16px -4px rgba(0, 0, 0, 0.5));
+$shadow-focus: var(--shadow-focus, 0 0 0 2px rgba(34, 197, 94, 0.15));
+$shadow-1: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.3));
+$shadow-3: var(--shadow-base, 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+$shadow-4: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.5));
 
 // ============================================================
-// 渐变
+// Animation & Transition tokens - 不随主题变化
 // ============================================================
 
-// 背景渐变
-$gradient-primary: linear-gradient(135deg, $primary-5 0%, $primary-6 100%);
-$gradient-success: linear-gradient(135deg, $success-5 0%, $success-6 100%);
-$gradient-warning: linear-gradient(135deg, $warning-5 0%, $warning-6 100%);
-$gradient-danger: linear-gradient(135deg, $danger-5 0%, $danger-6 100%);
-$gradient-info: linear-gradient(135deg, $info-5 0%, $info-6 100%);
+$duration-fast: 150ms;
+$duration-normal: 200ms;
+$duration-slow: 300ms;
 
-// 登录页背景 - 深钴蓝渐变（私有云管理风格）
-$gradient-login-bg: linear-gradient(135deg, #0f172a 0%, #1d39c4 50%, #0f172a 100%);
-$gradient-login-card: rgba(255, 255, 255, 0.95);
+$ease-base: ease;
+$ease-in: ease-in;
+$ease-out: ease-out;
+$ease-in-out: ease-in-out;
+
+$transition-fast: $duration-fast $ease-base;
+$transition-base: $duration-normal $ease-base;
+$transition-slow: $duration-slow $ease-base;
+
+// ============================================================
+// Z-Index Scale - 不随主题变化
+// ============================================================
+
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-fixed: 300;
+$z-modal-backdrop: 400;
+$z-modal: 500;
+$z-popover: 600;
+$z-tooltip: 700;
+$z-index-drawer: $z-modal;
+$z-index-modal: $z-modal;
+
+// ============================================================
+// Breakpoints (Responsive) - 不随主题变化
+// ============================================================
+
+$breakpoint-xs: 375px;
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+$breakpoint-2xl: 1536px;
+
+// ============================================================
+// Layout Sizes - 不随主题变化
+// ============================================================
+
+$header-height: 64px;
+$sidebar-width: 240px;
+$sidebar-collapsed-width: 64px;

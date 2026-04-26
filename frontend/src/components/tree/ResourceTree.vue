@@ -54,27 +54,46 @@
           @node-click="handleNodeClick"
         >
           <template #default="{ node, data }">
-            <div class="tree-node-content" :data-type="data.type">
-              <!-- 状态指示器 -->
-              <span
-                class="status-indicator"
-                :class="`status-${data.status}`"
-              />
-
+            <div class="tree-node-content" :data-type="data.type" :data-depth="data.depth">
               <!-- 类型图标 -->
-              <el-icon class="type-icon" :size="16">
+              <el-icon class="type-icon" :size="14">
                 <component :is="getTypeIcon(data.type)" />
               </el-icon>
 
               <!-- 节点名称 -->
-              <span class="node-label" :title="node.label">
-                {{ node.label }}
+              <span class="node-label" :title="getNodeLabel(data)">
+                {{ getNodeLabel(data) }}
               </span>
 
-              <!-- 附加信息标签 -->
-              <span v-if="data.type === 'vm' || data.type === 'ct'" class="node-id-tag">
-                {{ data.type === 'vm' ? 'VM' : 'CT' }}
+              <!-- 状态徽章与计数 -->
+              <div v-if="showBadges(data)" class="node-badges">
+                <span
+                  v-for="badge in data.badges"
+                  :key="badge.status"
+                  class="status-badge"
+                  :class="`badge-${badge.status}`"
+                >
+                  <span class="badge-dot" :class="`dot-${badge.status}`" />
+                  <span class="badge-count">{{ badge.count }}</span>
+                </span>
+              </div>
+
+              <!-- 资源分组计数标签 -->
+              <span v-if="isGroupNode(data)" class="group-count-tag">
+                {{ data.totalCount }}
               </span>
+
+              <!-- VM/CT 类型标签 -->
+              <span v-if="isLeafResource(data)" class="node-id-tag">
+                {{ getResourceTypeTag(data.type) }}
+              </span>
+
+              <!-- 状态指示器 (叶子节点) -->
+              <span
+                v-if="isLeafResource(data)"
+                class="status-indicator"
+                :class="`status-${data.status}`"
+              />
             </div>
           </template>
         </el-tree>
@@ -88,6 +107,22 @@
       </el-scrollbar>
     </div>
 
+    <!-- 统计信息 -->
+    <div v-if="hasStatistics" class="tree-stats">
+      <span class="stat-item">
+        <el-icon :size="12"><Monitor /></el-icon>
+        {{ statistics.byType.vm || 0 }}
+      </span>
+      <span class="stat-item">
+        <el-icon :size="12"><Box /></el-icon>
+        {{ statistics.byType.container || 0 }}
+      </span>
+      <span class="stat-item">
+        <el-icon :size="12"><FolderOpened /></el-icon>
+        {{ statistics.byType.storage || 0 }}
+      </span>
+    </div>
+
     <!-- 最后刷新时间 -->
     <div v-if="resourceStore.lastRefreshedAt" class="tree-footer">
       <span class="refresh-time">
@@ -98,24 +133,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useResourceStore } from '@/stores/resources'
-import { Search, Expand, Fold, Refresh } from '@element-plus/icons-vue'
+import {
+  Search, Expand, Fold, Refresh,
+  Monitor, Box, FolderOpened,
+} from '@element-plus/icons-vue'
 import type { ElTree } from 'element-plus'
-import type { TreeResourceData } from '@/types/resources'
+import type { AbstractTreeNode } from '@/models/resourceTree'
+import { ResourceTypeEnum, ResourceStatusEnum, isResourceGroupNode, isLeafResourceNode } from '@/models/resourceTree'
 
 /**
  * ResourceTree - PVE 资源树导航组件
  *
- * 功能:
- * - 三级树结构: 数据中心 -> 节点 -> VM/CT/Storage/Network
- * - 展开/收起动画
- * - 点击导航到详情页
- * - 状态指示器 (运行/停止/错误)
- * - 搜索过滤
- * - 深色侧边栏主题
+ * 新架构:
+ * - 四级树结构: 数据中心 -> 节点 -> 资源分组 -> 具体资源
+ * - 资源分组: 虚拟机、容器、存储、网络
+ * - 状态徽章与数量统计
+ * - 快捷操作支持 (待扩展)
+ * - 搜索过滤能力
  */
 const router = useRouter()
 const { t } = useI18n()
@@ -139,6 +177,12 @@ const searchQuery = computed({
 
 // 计算属性
 const resourceTree = computed(() => resourceStore.resourceTree)
+const statistics = computed(() => resourceStore.statistics)
+
+/** 是否有统计信息 */
+const hasStatistics = computed(() => {
+  return statistics.value.totalResources > 0
+})
 
 /** 是否显示空状态 */
 const showEmptyState = computed(() => {
@@ -151,18 +195,61 @@ const isInitialLoading = computed(() => {
 })
 
 /**
- * 根据资源类型获取对应图标组件名
+ * 根据资源类型获取图标组件名
  */
-function getTypeIcon(type: string): string {
-  const iconMap: Record<string, string> = {
-    datacenter: 'Coin',
-    node: 'Server',
-    vm: 'Monitor',
-    ct: 'Box',
-    storage: 'FolderOpened',
-    network: 'Connection',
+function getTypeIcon(type: ResourceTypeEnum): string {
+  const iconMap: Record<ResourceTypeEnum, string> = {
+    [ResourceTypeEnum.DataCenter]: 'Coin',
+    [ResourceTypeEnum.Node]: 'Server',
+    [ResourceTypeEnum.VM]: 'Monitor',
+    [ResourceTypeEnum.Container]: 'Box',
+    [ResourceTypeEnum.Storage]: 'FolderOpened',
+    [ResourceTypeEnum.Network]: 'Connection',
+    [ResourceTypeEnum.Pool]: 'Collection',
   }
   return iconMap[type] || 'Document'
+}
+
+/**
+ * 获取节点显示标签
+ */
+function getNodeLabel(data: AbstractTreeNode): string {
+  return data.displayLabel || data.name
+}
+
+/**
+ * 是否显示状态徽章
+ */
+function showBadges(data: AbstractTreeNode): boolean {
+  return !!data.badges && data.badges.length > 0 && data.depth < 3
+}
+
+/**
+ * 是否为资源分组节点
+ */
+function isGroupNode(data: AbstractTreeNode): boolean {
+  return isResourceGroupNode(data)
+}
+
+/**
+ * 是否为叶子资源节点
+ */
+function isLeafResource(data: AbstractTreeNode): boolean {
+  return isLeafResourceNode(data)
+}
+
+/**
+ * 获取资源类型标签 (VM/CT)
+ */
+function getResourceTypeTag(type: ResourceTypeEnum): string {
+  switch (type) {
+    case ResourceTypeEnum.VM:
+      return 'VM'
+    case ResourceTypeEnum.Container:
+      return 'CT'
+    default:
+      return ''
+  }
 }
 
 /**
@@ -182,7 +269,7 @@ function formatTime(date: Date): string {
 /**
  * 处理节点点击事件 - 导航到详情页
  */
-function handleNodeClick(data: TreeResourceData): void {
+function handleNodeClick(data: AbstractTreeNode): void {
   resourceStore.selectNode(data.id)
   navigateToResource(data)
 }
@@ -190,20 +277,23 @@ function handleNodeClick(data: TreeResourceData): void {
 /**
  * 根据资源类型导航到对应路由
  */
-function navigateToResource(data: TreeResourceData): void {
+function navigateToResource(data: AbstractTreeNode): void {
+  // 分组节点不导航
+  if (isResourceGroupNode(data)) return
+
   const routeMap: Record<string, string> = {
-    datacenter: '/',
-    node: `/nodes/${data.name}`,
-    vm: `/qemu/${data.id}`,
-    ct: `/lxc/${data.id}`,
-    storage: `/storage/${data.name}`,
-    network: `/network/${data.name}`,
+    [ResourceTypeEnum.DataCenter]: '/',
+    [ResourceTypeEnum.Node]: `/nodes/${data.name}`,
+    [ResourceTypeEnum.VM]: isLeafResourceNode(data) ? `/qemu/${data.resourceId}` : `/qemu/${data.id}`,
+    [ResourceTypeEnum.Container]: isLeafResourceNode(data) ? `/lxc/${data.resourceId}` : `/lxc/${data.id}`,
+    [ResourceTypeEnum.Storage]: `/storage/${data.name}`,
+    [ResourceTypeEnum.Network]: `/network/${data.name}`,
   }
 
   const route = routeMap[data.type]
   if (route) {
     router.push(route).catch(() => {
-      // 路由不存在时忽略错误（如未实现的功能）
+      // 路由不存在时忽略错误
     })
   }
 }
@@ -255,7 +345,7 @@ onUnmounted(() => {
       }
 
       &.is-focus {
-        box-shadow: 0 0 0 1px $color-primary inset;
+        box-shadow: 0 0 0 1px $primary-color inset;
       }
     }
 
@@ -303,7 +393,7 @@ onUnmounted(() => {
     }
 
     &.is-loading {
-      color: $color-primary-light;
+      color: $primary-hover;
     }
   }
 }
@@ -344,7 +434,7 @@ onUnmounted(() => {
 
   // 选中状态
   :deep(.el-tree-node.is-current > .el-tree-node__content) {
-    background: rgba($color-primary, 0.25);
+    background: rgba($primary-color, 0.25);
     color: #fff;
   }
 
@@ -388,7 +478,105 @@ onUnmounted(() => {
   padding-right: $spacing-2;
 }
 
-// 状态指示器
+// 类型图标
+.type-icon {
+  color: rgba(255, 255, 255, 0.65);
+  flex-shrink: 0;
+}
+
+// 节点名称
+.node-label {
+  flex: 1;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: $font-size-sm;
+  line-height: $line-height-sm;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 状态徽章容器
+.node-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+// 单个状态徽章
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: $radius-xs;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+// 徽章圆点
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &.dot-running {
+    background: $color-success;
+  }
+
+  &.dot-stopped {
+    background: $gray-6;
+  }
+
+  &.dot-error {
+    background: $color-danger;
+  }
+
+  &.dot-paused,
+  &.dot-frozen {
+    background: $warning-6;
+  }
+
+  &.dot-unknown {
+    background: $gray-5;
+  }
+}
+
+// 徽章数量
+.badge-count {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: $font-weight-medium;
+}
+
+// 资源分组计数标签
+.group-count-tag {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0 5px;
+  border-radius: $radius-xs;
+  flex-shrink: 0;
+  font-weight: $font-weight-medium;
+  min-width: 18px;
+  text-align: center;
+  line-height: 18px;
+}
+
+// 资源 ID 标签
+.node-id-tag {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px $spacing-2;
+  border-radius: $radius-xs;
+  flex-shrink: 0;
+  font-weight: $font-weight-medium;
+}
+
+// 状态指示器 (叶子节点)
 .status-indicator {
   width: 8px;
   height: 8px;
@@ -414,35 +602,38 @@ onUnmounted(() => {
   &.status-unknown {
     background: $warning-6;
   }
+
+  &.status-paused,
+  &.status-frozen {
+    background: $warning-6;
+  }
 }
 
-// 类型图标
-.type-icon {
-  color: rgba(255, 255, 255, 0.65);
-  flex-shrink: 0;
-}
+// ============================================================
+// 底部统计信息
+// ============================================================
 
-// 节点名称
-.node-label {
-  flex: 1;
-  min-width: 0;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: $font-size-sm;
-  line-height: $line-height-sm;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.tree-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-4;
+  padding: $spacing-2 $spacing-3;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
-// 资源 ID 标签
-.node-id-tag {
-  font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.08);
-  padding: 1px $spacing-2;
-  border-radius: $radius-xs;
-  flex-shrink: 0;
-  font-weight: $font-weight-medium;
+  .stat-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+
+    .el-icon {
+      color: rgba(255, 255, 255, 0.45);
+    }
+  }
 }
 
 // ============================================================

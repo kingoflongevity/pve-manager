@@ -3,5 +3,11 @@
 </template>
 
 <script setup lang="ts">
-// 根组件，仅负责渲染路由匹配的页面组件
+import { onMounted } from 'vue'
+import { initTheme } from '@/composables/useTheme'
+
+// 初始化主题（应用启动时仅调用一次）
+onMounted(() => {
+  initTheme()
+})
 </script>

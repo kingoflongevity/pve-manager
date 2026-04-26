@@ -1,5 +1,5 @@
 <template>
-  <div class="resource-card" :style="cardStyle">
+  <div class="resource-card" :style="{ '--resource-accent': cardAccent }">
     <!-- 图标 -->
     <div class="resource-icon" :style="iconStyle">
       <el-icon :size="28"><component :is="icon" /></el-icon>
@@ -67,11 +67,11 @@ const usagePercent = computed(() => {
   return Math.min((current / props.totalValue) * 100, 100)
 })
 
-// 根据使用率返回颜色
+// 根据使用率返回颜色 (OLED dark theme optimized)
 const progressColor = computed(() => {
-  if (usagePercent.value < 50) return '#52c41a'
-  if (usagePercent.value < 75) return '#faad14'
-  return '#f5222d'
+  if (usagePercent.value < 50) return '#22C55E'
+  if (usagePercent.value < 75) return '#F97316'
+  return '#EF4444'
 })
 
 // 趋势样式
@@ -80,52 +80,50 @@ const trendClass = computed(() => props.isUp ? 'trend-up' : 'trend-down')
 // 趋势图标
 const trendIcon = computed(() => props.isUp ? ArrowUp : ArrowDown)
 
-// 卡片样式
-const cardStyle = computed(() => ({
-  '--resource-bg': getBackgroundColor(),
-}))
-
+// 图标样式（背景色和颜色）
 const iconStyle = computed(() => ({
   background: getIconBackground(),
   color: getIconColor(),
 }))
 
-function getBackgroundColor(): string {
+// 卡片顶部强调色
+const cardAccent = getAccentColor()
+
+function getAccentColor(): string {
   const percent = usagePercent.value
-  if (percent < 50) return '#f6ffed'
-  if (percent < 75) return '#fffbe6'
-  return '#fff2f0'
+  if (percent < 50) return '#22C55E'
+  if (percent < 75) return '#F97316'
+  return '#EF4444'
 }
 
 function getIconBackground(): string {
   const percent = usagePercent.value
-  if (percent < 50) return '#f6ffed'
-  if (percent < 75) return '#fffbe6'
-  return '#fff2f0'
+  if (percent < 50) return 'rgba(34, 197, 94, 0.15)'
+  if (percent < 75) return 'rgba(249, 115, 22, 0.15)'
+  return 'rgba(239, 68, 68, 0.15)'
 }
 
 function getIconColor(): string {
   const percent = usagePercent.value
-  if (percent < 50) return '#52c41a'
-  if (percent < 75) return '#faad14'
-  return '#f5222d'
+  if (percent < 50) return '#22C55E'
+  if (percent < 75) return '#F97316'
+  return '#EF4444'
 }
 </script>
 
 <style lang="scss" scoped>
-@use '@/assets/styles/variables' as *;
-
 .resource-card {
-  background: $color-bg-container;
-  border-radius: $radius-base;
-  padding: $spacing-6;
-  box-shadow: $shadow-card;
-  transition: $transition-base;
+  background: var(--color-bg-container, #0F172A);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-base, 0 1px 3px 0 rgba(0, 0, 0, 0.1));
+  transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  gap: $spacing-4;
+  gap: 16px;
   position: relative;
   overflow: hidden;
+  border: 1px solid var(--color-border-light, rgba(30, 41, 59, 0.4));
 
   &::before {
     content: '';
@@ -134,86 +132,95 @@ function getIconColor(): string {
     left: 0;
     right: 0;
     height: 3px;
-    background: var(--resource-bg);
+    background: var(--resource-accent);
+    opacity: 0.8;
   }
 
   &:hover {
-    box-shadow: $shadow-card-hover;
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
     transform: translateY(-2px);
+    border-color: var(--resource-accent);
   }
 }
 
 .resource-icon {
   width: 52px;
   height: 52px;
-  border-radius: $radius-md;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .resource-content {
   display: flex;
   flex-direction: column;
-  gap: $spacing-2;
+  gap: 12px;
 }
 
 .resource-label {
-  color: $color-text-secondary;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  color: var(--color-text-secondary, #94A3B8);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
 }
 
 .resource-value {
   display: flex;
   align-items: baseline;
-  gap: $spacing-1;
+  gap: 8px;
 
   .value-number {
-    font-size: $font-size-3xl;
-    font-weight: $font-weight-bold;
-    color: $color-text-primary;
-    line-height: $line-height-xs;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--color-text-primary, #F8FAFC);
+    line-height: 1;
+    font-family: 'Fira Code', monospace;
   }
 
   .value-unit {
-    font-size: $font-size-base;
-    color: $color-text-secondary;
+    font-size: 14px;
+    color: var(--color-text-secondary, #94A3B8);
+    font-weight: 500;
   }
 }
 
 .resource-progress {
   display: flex;
   align-items: center;
-  gap: $spacing-3;
-  margin-top: $spacing-2;
+  gap: 12px;
+  margin-top: 8px;
 
   :deep(.el-progress-bar) {
     flex: 1;
   }
 
   .progress-text {
-    font-size: $font-size-sm;
-    color: $color-text-regular;
-    font-weight: $font-weight-medium;
+    font-size: 13px;
+    color: var(--color-text-regular, #CBD5E1);
+    font-weight: 600;
     min-width: 48px;
     text-align: right;
+    font-family: 'Fira Code', monospace;
   }
 }
 
 .resource-trend {
   display: flex;
   align-items: center;
-  gap: $spacing-1;
-  font-size: $font-size-xs;
+  gap: 4px;
+  font-size: 12px;
   margin-top: auto;
+  font-weight: 500;
 
   &.trend-up {
-    color: $danger-6;
+    color: var(--color-danger, #EF4444);
   }
 
   &.trend-down {
-    color: $success-6;
+    color: var(--color-success, #22C55E);
   }
 }
 </style>

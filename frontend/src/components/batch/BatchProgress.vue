@@ -395,7 +395,7 @@ watch(
   }
 
   &::-webkit-scrollbar-thumb {
-    background: $color-border-dark;
+    background: $slate-600;
     border-radius: $radius-full;
   }
 }

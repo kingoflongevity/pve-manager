@@ -1,5 +1,23 @@
 <template>
-  <div class="rrd-chart" ref="chartRef" :style="{ height: height }"></div>
+  <div class="rrd-chart-wrapper">
+    <div class="rrd-chart" ref="chartRef" :style="{ height: height }"></div>
+    
+    <!-- 暂停/继续控制按钮 -->
+    <div v-if="props.refreshInterval > 0" class="chart-controls">
+      <el-button
+        size="small"
+        :type="autoRefreshPaused ? 'primary' : ''"
+        @click="toggleAutoRefresh"
+        class="pause-btn"
+      >
+        <el-icon>
+          <VideoPlay v-if="autoRefreshPaused" />
+          <VideoPause v-else />
+        </el-icon>
+        {{ autoRefreshPaused ? '继续' : '暂停' }}
+      </el-button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -8,8 +26,10 @@
  * 
  * 支持多种图表类型（line、bar、area），自动从 PVE API 获取 RRD 数据。
  * 支持自动刷新、数据缩放、缺失数据处理等特性。
+ * 提供暂停/继续控制按钮以符合无障碍要求（减少闪烁）。
  */
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { VideoPlay, VideoPause } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import type { EChartsOption } from 'echarts'
 import { getNodeRRD } from '@/api/node'
@@ -66,27 +86,32 @@ const chartRef = ref<HTMLElement>()
 let chartInstance: echarts.ECharts | null = null
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 const loading = ref(false)
+/** 自动刷新暂停状态 */
+const autoRefreshPaused = ref(false)
 
 /** 获取默认的数据系列配置 */
 function getDefaultSeries(): ChartSeries[] {
+  const root = document.documentElement
+  const isLight = root.classList.contains('theme-light')
+  
   const defaults: Record<RRDDataSet, ChartSeries[]> = {
     cpu: [
-      { name: 'CPU 使用率', dataKey: 'cpu', color: '#409EFF', unit: '%' },
+      { name: 'CPU 使用率', dataKey: 'cpu', color: isLight ? '#3B82F6' : '#409EFF', unit: '%' },
     ],
     memory: [
-      { name: '内存使用', dataKey: 'mem', color: '#67C23A', unit: 'MB' },
-      { name: '交换空间', dataKey: 'swap', color: '#E6A23C', unit: 'MB' },
+      { name: '内存使用', dataKey: 'mem', color: isLight ? '#16A34A' : '#67C23A', unit: 'MB' },
+      { name: '交换空间', dataKey: 'swap', color: isLight ? '#F97316' : '#E6A23C', unit: 'MB' },
     ],
     network: [
-      { name: '接收', dataKey: 'netin', color: '#409EFF', unit: 'B/s' },
-      { name: '发送', dataKey: 'netout', color: '#67C23A', unit: 'B/s' },
+      { name: '接收', dataKey: 'netin', color: isLight ? '#3B82F6' : '#409EFF', unit: 'B/s' },
+      { name: '发送', dataKey: 'netout', color: isLight ? '#16A34A' : '#67C23A', unit: 'B/s' },
     ],
     disk: [
-      { name: '读取', dataKey: 'diskread', color: '#409EFF', unit: 'B/s' },
-      { name: '写入', dataKey: 'diskwrite', color: '#E6A23C', unit: 'B/s' },
+      { name: '读取', dataKey: 'diskread', color: isLight ? '#3B82F6' : '#409EFF', unit: 'B/s' },
+      { name: '写入', dataKey: 'diskwrite', color: isLight ? '#F97316' : '#E6A23C', unit: 'B/s' },
     ],
     system: [
-      { name: '系统负载', dataKey: 'loadavg', color: '#909399' },
+      { name: '系统负载', dataKey: 'loadavg', color: isLight ? '#4B5563' : '#909399' },
     ],
   }
   return defaults[props.dataset] || defaults.cpu
@@ -148,11 +173,24 @@ async function loadChartData() {
   }
 }
 
+/** 获取主题颜色 */
+function getThemeColors() {
+  const root = document.documentElement
+  const isLight = root.classList.contains('theme-light')
+  return {
+    isLight,
+    axisColor: isLight ? '#E5E7EB' : '#dcdfe6',
+    splitLine: isLight ? '#F3F4F6' : '#ebeef5',
+    emptyText: isLight ? '#6B7280' : '#909399',
+  }
+}
+
 /** 将 RRD 数据渲染到 ECharts */
 function renderChart(data: RRDDataPoint[]) {
   if (!chartInstance) return
 
   const seriesConfig = props.series.length > 0 ? props.series : getDefaultSeries()
+  const theme = getThemeColors()
   
   // 提取时间轴数据
   const times = data.map(d => d.time).filter(t => t !== undefined)
@@ -216,7 +254,7 @@ function renderChart(data: RRDDataPoint[]) {
         rotate: 0,
       },
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: '#dcdfe6' } },
+      axisLine: { lineStyle: { color: theme.axisColor } },
     },
     yAxis: {
       type: 'value',
@@ -229,7 +267,7 @@ function renderChart(data: RRDDataPoint[]) {
           return value
         },
       },
-      splitLine: { lineStyle: { type: 'dashed', color: '#ebeef5' } },
+      splitLine: { lineStyle: { type: 'dashed', color: theme.splitLine } },
     },
     series,
     dataZoom: [
@@ -256,8 +294,9 @@ function renderChart(data: RRDDataPoint[]) {
 /** 渲染空状态图表 */
 function renderEmptyChart() {
   if (!chartInstance) return
+  const theme = getThemeColors()
   chartInstance.setOption({
-    title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#909399', fontSize: 14 } },
+    title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: theme.emptyText, fontSize: 14 } },
     xAxis: { show: false },
     yAxis: { show: false },
     series: [],
@@ -268,7 +307,7 @@ function renderEmptyChart() {
 /** 启动自动刷新 */
 function startAutoRefresh() {
   stopAutoRefresh()
-  if (props.refreshInterval > 0) {
+  if (props.refreshInterval > 0 && !autoRefreshPaused.value) {
     refreshTimer = setInterval(() => {
       loadChartData()
     }, props.refreshInterval * 1000)
@@ -280,6 +319,16 @@ function stopAutoRefresh() {
   if (refreshTimer) {
     clearInterval(refreshTimer)
     refreshTimer = null
+  }
+}
+
+/** 切换自动刷新暂停/继续状态 */
+function toggleAutoRefresh() {
+  autoRefreshPaused.value = !autoRefreshPaused.value
+  if (!autoRefreshPaused.value) {
+    startAutoRefresh()
+  } else {
+    stopAutoRefresh()
   }
 }
 
@@ -321,9 +370,50 @@ defineExpose({ refresh: loadChartData })
 </script>
 
 <style scoped lang="scss">
-.rrd-chart {
+.rrd-chart-wrapper {
   width: 100%;
-  background: #fff;
-  border-radius: 8px;
+  position: relative;
+  
+  .rrd-chart {
+    width: 100%;
+    background: var(--color-bg-container, #0F172A);
+    border-radius: 12px;
+    border: 1px solid var(--color-border-base, rgba(30, 41, 59, 0.8));
+    padding: 16px;
+  }
+
+  .chart-controls {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    z-index: 3000;
+
+    .pause-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--color-bg-elevated, #1E293B);
+      border: 1px solid var(--color-border-base, rgba(30, 41, 59, 0.8));
+      color: var(--color-text-secondary, #94A3B8);
+      transition: all 0.2s ease;
+      
+      &:hover {
+        color: var(--color-primary, #4ADE80);
+        border-color: var(--color-border-focus, #22C55E);
+      }
+
+      &.el-button--primary {
+        background: var(--color-primary-gradient, linear-gradient(135deg, #22C55E, #16A34A));
+        border: none;
+        color: var(--color-text-on-primary, #020617);
+
+        &:hover {
+          background: var(--color-primary-gradient-hover, linear-gradient(135deg, #4ADE80, #22C55E));
+        }
+      }
+    }
+  }
 }
 </style>

@@ -111,8 +111,8 @@ type QEMUConfig struct {
 	Startup        string `json:"startup,omitempty"`
 	Tablet         int    `json:"tablet,omitempty"`
 	Tags           string `json:"tags,omitempty"`
-	TCPU           int    `json:"vcpus,omitempty"`
-	TGA            int    `json:"vga,omitempty"`
+	TCPU           int    `json:"tcpu,omitempty"`
+	TGA            int    `json:"tga,omitempty"`
 	TPMState0      string `json:"tpmstate0,omitempty"`
 	Unused0        string `json:"unused0,omitempty"`
 	Unused1        string `json:"unused1,omitempty"`
@@ -353,13 +353,13 @@ type NodeStatus struct {
 	CPUs       int     `json:"cpus"`
 	Mem        uint64  `json:"mem"`
 	MaxMem     uint64  `json:"maxmem"`
-	Swap       uint64  `json:"swap"`
+	Swap       any     `json:"swap,omitempty"`       // PVE 9.x returns object, older versions return uint64
 	MaxSwap    uint64  `json:"maxswap"`
 	Disk       uint64  `json:"disk"`
 	MaxDisk    uint64  `json:"maxdisk"`
 	KVersion   string  `json:"kversion,omitempty"`
 	PVEVersion string  `json:"pveversion,omitempty"`
-	LoadAvg    string  `json:"loadavg,omitempty"`
+	LoadAvg    any     `json:"loadavg,omitempty"` // PVE 9.x returns array, older versions return string
 	Uptime     uint64  `json:"uptime"`
 	Idle       int     `json:"idle,omitempty"`
 	RootFs     struct {
@@ -371,7 +371,7 @@ type NodeStatus struct {
 		Free  uint64 `json:"free"`
 		Total uint64 `json:"total"`
 		Used  uint64 `json:"used"`
-	} `json:"swap,omitempty"`
+	} `json:"swap_info,omitempty"`
 }
 
 // VersionInfo PVE 版本信息
@@ -441,7 +441,7 @@ type NetInterface struct {
 	Type      string `json:"type"`
 	Active    int    `json:"active,omitempty"`
 	Address   string `json:"address,omitempty"`
-	Netmask   int    `json:"netmask,omitempty"`
+	Netmask   any    `json:"netmask,omitempty"`     // PVE 9.x returns string, older return int
 	Gateway   string `json:"gateway,omitempty"`
 	Autostart int    `json:"autostart,omitempty"`
 	Method    string `json:"method,omitempty"`
@@ -517,7 +517,7 @@ type StorageContent struct {
 	Used        uint64 `json:"used,omitempty"`
 	Name        string `json:"name,omitempty"`
 	VMID        int    `json:"vmid,omitempty"`
-	CTime       uint64 `json:"ctime,omitempty"`
+	CTime       any    `json:"ctime,omitempty"`
 	Parent      string `json:"parent,omitempty"`
 	Notes       string `json:"notes,omitempty"`
 }
@@ -699,8 +699,8 @@ type GroupCreateParams struct {
 
 // Role 角色信息
 type Role struct {
-	RoleID string   `json:"roleid"`
-	Privs  []string `json:"privs,omitempty"`
+	RoleID string `json:"roleid"`
+	Privs  any    `json:"privs,omitempty"` // PVE 9.x returns string, older versions return []string
 }
 
 // RoleCreateParams 创建角色参数

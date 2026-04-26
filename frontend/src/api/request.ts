@@ -48,10 +48,16 @@ service.interceptors.response.use(
       ElMessage.error(res.message || '请求失败')
       return Promise.reject(new Error(res.message || '请求失败'))
     }
-    return res
+    // 成功时返回 data 字段
+    return res.data !== undefined ? res.data : res
   },
   (error) => {
     const { response } = error
+    // 404 错误静默返回，由调用方决定如何处理
+    // 这样可以支持后端部分接口尚未实现时的优雅降级
+    if (response?.status === 404) {
+      return Promise.reject(error)
+    }
     if (response) {
       switch (response.status) {
         case 401:
@@ -62,9 +68,6 @@ service.interceptors.response.use(
           break
         case 403:
           ElMessage.error('没有权限访问该资源')
-          break
-        case 404:
-          ElMessage.error('请求的资源不存在')
           break
         case 500:
           ElMessage.error('服务器内部错误')

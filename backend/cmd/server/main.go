@@ -1,243 +1,242 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kingoflongevity/pve-manager/backend/internal/config"
 	"github.com/kingoflongevity/pve-manager/backend/internal/database"
 	"github.com/kingoflongevity/pve-manager/backend/internal/handler"
 	"github.com/kingoflongevity/pve-manager/backend/internal/repository"
+	"github.com/kingoflongevity/pve-manager/backend/internal/service"
 	"go.uber.org/zap"
 )
 
-func main() {
-	// 初始化日志
-	logger, err := zap.NewProduction()
-	if err != nil {
-		log.Fatalf("初始化日志失败: %v", err)
+// appConfig 应用运行时配置
+type appConfig struct {
+	Port  int
+	Debug bool
+	DBPath string
+}
+
+// loadAppConfig 加载应用配置（不依赖 PVE 配置文件）
+func loadAppConfig() *appConfig {
+	port := 8080
+	debug := false
+
+	if p := os.Getenv("PVE_MANAGER_SERVER_PORT"); p != "" {
+		fmt.Sscanf(p, "%d", &port)
 	}
+	if os.Getenv("PVE_MANAGER_SERVER_MODE") == "debug" {
+		debug = true
+	}
+
+	dbPath := os.Getenv("PVE_MANAGER_DB_PATH")
+	if dbPath == "" {
+		dbPath = "data/pve-manager.db"
+	}
+
+	return &appConfig{
+		Port:  port,
+		Debug: debug,
+		DBPath: dbPath,
+	}
+}
+
+// setupRoutes 注册所有 API 路由
+// 按功能模块分组：认证、集群、节点、存储、QEMU、LXC、访问控制
+func setupRoutes(
+	r *gin.Engine,
+	authHandler *handler.AuthHandler,
+	proxyHandler *handler.ProxyHandler,
+	vncHandler *handler.VNCProxyHandler,
+) {
+	r.Use(handler.CORS())
+
+	// 认证路由（无需 JWT）
+	auth := r.Group("/api/auth")
+	{
+		auth.POST("/login", authHandler.Login)
+	}
+
+	// 受保护的路由（需要 JWT）
+	api := r.Group("/api/pve")
+	api.Use(handler.AuthMiddleware(nil))
+	{
+		// 集群管理
+		cluster := api.Group("/cluster")
+		{
+			cluster.GET("/resources", proxyHandler.GetClusterResources)
+			cluster.GET("/tasks", proxyHandler.GetClusterTasks)
+			cluster.GET("/nextid", proxyHandler.GetNextID)
+			cluster.GET("/ha", proxyHandler.GetHAConfig)
+			cluster.GET("/sdn/zones", proxyHandler.GetSDNZones)
+			cluster.GET("/sdn/vnets", proxyHandler.GetSDNVNETs)
+			cluster.GET("/pools", proxyHandler.GetPoolList)
+			cluster.GET("/pools/:poolid", proxyHandler.GetPool)
+		}
+
+		// 节点操作
+		nodes := api.Group("/nodes/:node")
+		{
+			nodes.GET("/status", proxyHandler.GetNodeStatus)
+			nodes.GET("/version", proxyHandler.GetNodeVersion)
+			nodes.GET("/services", proxyHandler.GetNodeServices)
+			nodes.GET("/syslog", proxyHandler.GetNodeSyslog)
+			nodes.GET("/tasks", proxyHandler.GetNodeTasks)
+			nodes.GET("/tasks/:upid/status", proxyHandler.GetNodeTaskStatus)
+			nodes.GET("/tasks/:upid/log", proxyHandler.GetNodeTaskLog)
+			nodes.GET("/tasks/:upid/wait", proxyHandler.WaitForTask)
+			nodes.GET("/network", proxyHandler.GetNodeNetwork)
+			nodes.GET("/dns", proxyHandler.GetNodeDNS)
+			nodes.GET("/time", proxyHandler.GetNodeTime)
+			nodes.GET("/apt/update", proxyHandler.GetNodeAPTUpdate)
+			nodes.GET("/rrd", proxyHandler.GetNodeRRD)
+			nodes.POST("/services/:service/:action", proxyHandler.ActionService)
+		}
+
+		// 存储管理
+		storage := api.Group("/nodes/:node/storage")
+		{
+			storage.GET("", proxyHandler.GetStorageList)
+			storage.GET("/:storage/status", proxyHandler.GetStorageStatus)
+			storage.GET("/:storage/content", proxyHandler.GetStorageContent)
+			storage.POST("/:storage/download", proxyHandler.DownloadISO)
+			storage.GET("/:storage", proxyHandler.GetStorageDetail)
+			storage.POST("", proxyHandler.CreateStorage)
+			storage.POST("/:storage", proxyHandler.UpdateStorage)
+			storage.DELETE("/:storage", proxyHandler.DeleteStorage)
+		}
+
+		// QEMU 虚拟机
+		qemu := api.Group("/nodes/:node/qemu")
+		{
+			qemu.GET("", proxyHandler.GetQEMUList)
+			qemu.POST("", proxyHandler.CreateQEMU)
+			qemu.GET("/:vmid/config", proxyHandler.GetQEMUConfig)
+			qemu.POST("/:vmid/config", proxyHandler.SetQEMUConfig)
+			qemu.POST("/:vmid/status/:action", proxyHandler.QEMUAction)
+			qemu.DELETE("/:vmid", proxyHandler.DeleteQEMU)
+			qemu.GET("/:vmid/snapshot", proxyHandler.GetQEMUSnapshots)
+			qemu.POST("/:vmid/snapshot", proxyHandler.CreateQEMUSnapshot)
+			qemu.DELETE("/:vmid/snapshot/:snapname", proxyHandler.DeleteQEMUSnapshot)
+			qemu.POST("/:vmid/clone", proxyHandler.CloneQEMU)
+			qemu.POST("/:vmid/migrate", proxyHandler.MigrateQEMU)
+			qemu.GET("/:vmid/rrd", proxyHandler.GetQEMURRD)
+			qemu.GET("/:vmid/pending", proxyHandler.GetQEMUPending)
+			qemu.POST("/:vmid/vncproxy", proxyHandler.VNCProxy)
+			qemu.POST("/:vmid/snapshot/:snapname/rollback", proxyHandler.RollbackQEMUSnapshot)
+		}
+
+		// LXC 容器
+		lxc := api.Group("/nodes/:node/lxc")
+		{
+			lxc.GET("", proxyHandler.GetLXCList)
+			lxc.POST("", proxyHandler.CreateLXC)
+			lxc.GET("/:vmid/config", proxyHandler.GetLXCConfig)
+			lxc.POST("/:vmid/config", proxyHandler.SetLXCConfig)
+			lxc.POST("/:vmid/status/:action", proxyHandler.LXCAction)
+			lxc.DELETE("/:vmid", proxyHandler.DeleteLXC)
+			lxc.GET("/:vmid/snapshot", proxyHandler.GetLXCSnapshots)
+			lxc.POST("/:vmid/snapshot", proxyHandler.CreateLXCSnapshot)
+			lxc.DELETE("/:vmid/snapshot/:snapname", proxyHandler.DeleteLXCSnapshot)
+			lxc.POST("/:vmid/snapshot/:snapname/rollback", proxyHandler.RollbackLXCSnapshot)
+			lxc.POST("/:vmid/clone", proxyHandler.CloneLXC)
+			lxc.POST("/:vmid/migrate", proxyHandler.MigrateLXC)
+			lxc.GET("/:vmid/rrd", proxyHandler.GetLXCRRD)
+			lxc.GET("/:vmid/pending", proxyHandler.GetLXCPending)
+		}
+
+		// 访问控制
+		access := api.Group("/access")
+		{
+			access.GET("/users", proxyHandler.GetUsers)
+			access.POST("/users", proxyHandler.CreateUser)
+			access.DELETE("/users/:userid", proxyHandler.DeleteUser)
+			access.GET("/groups", proxyHandler.GetGroups)
+			access.GET("/roles", proxyHandler.GetRoles)
+			access.GET("/acl", proxyHandler.GetACLs)
+			access.POST("/acl", proxyHandler.SetACL)
+			access.GET("/domains", proxyHandler.GetDomains)
+		}
+
+		// WebSocket VNC
+		r.GET("/api/pve/vnc/websocket", vncHandler.HandleVNC)
+
+		// 管理接口
+		admin := api.Group("/admin")
+		{
+			admin.GET("/pve-configs", authHandler.GetPVEConfigs)
+			admin.GET("/audit-logs", authHandler.GetAuditLogs)
+		}
+	}
+}
+
+func main() {
+	// 初始化 Logger
+	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	sugar := logger.Sugar()
-
-	// 初始化 Gin 路由
-	gin.SetMode("debug")
-	r := gin.New()
-
-	// 注册中间件
-	r.Use(gin.Recovery())
-	r.Use(handler.RequestLogMiddleware(logger))
-	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-PVE-Auth-Token")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
-
-	// 加载配置（仅用于端口等通用配置）
-	cfgPath := os.Getenv("CONFIG_PATH")
-	if cfgPath == "" {
-		cfgPath = "config.yaml"
-	}
-
-	cfg, err := config.LoadConfig(cfgPath)
-	if err != nil {
-		if _, statErr := os.Stat(cfgPath); !os.IsNotExist(statErr) {
-			sugar.Fatalf("加载配置失败: %v", err)
-		}
-	}
+	// 加载应用配置
+	appCfg := loadAppConfig()
 
 	// 初始化数据库
-	if _, err := database.InitDatabase(logger); err != nil {
-		sugar.Fatalf("初始化数据库失败: %v", err)
+	_, err := database.InitDatabase(logger)
+	if err != nil {
+		logger.Fatal("初始化数据库失败", zap.Error(err))
 	}
 
-	// 初始化仓库
+	// 初始化 Repositories（使用全局 DB 实例）
 	configRepo := repository.NewPVEConfigRepo()
 	sessionRepo := repository.NewSessionRepo()
 	auditRepo := repository.NewAuditLogRepo()
-	sysConfigRepo := repository.NewSystemConfigRepo()
 
-	// 初始化处理器
-	authHandler := handler.NewAuthHandlerWithDB(logger, configRepo, sessionRepo, auditRepo)
-	proxyHandler := handler.NewProxyHandler(logger)
-	vncHandler := handler.NewVNCHandler(logger)
+	// 初始化 Services
+	authService := service.NewAuthService(logger, configRepo, sessionRepo, auditRepo)
+	clusterService := service.NewClusterService(logger)
+	vmService := service.NewVMService(logger)
+	containerService := service.NewContainerService(logger)
+	storageService := service.NewStorageService(logger)
+	nodeService := service.NewNodeService(logger)
+
+	// 初始化 Handlers
+	authHandler := handler.NewAuthHandler(logger, authService)
+	proxyHandler := handler.NewProxyHandler(
+		logger, authService, clusterService, vmService, containerService, storageService, nodeService,
+	)
+	vncHandler := handler.NewVNCProxyHandler(authService)
+
+	// 设置 Gin 模式
+	if appCfg.Debug {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// 创建路由引擎
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(gin.Logger())
 
 	// 注册路由
-	setupRoutes(r, authHandler, proxyHandler, vncHandler, sysConfigRepo, logger)
+	setupRoutes(r, authHandler, proxyHandler, vncHandler)
 
-	// 启动 HTTP 服务器
-	addr := fmt.Sprintf(":%d", cfg.Server.Port)
+	// 启动服务器
+	addr := fmt.Sprintf(":%d", appCfg.Port)
+	logger.Info("服务器启动成功", zap.String("addr", addr))
+
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: r,
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
-	// 启动服务器（优雅关闭）
-	go func() {
-		sugar.Infof("服务器启动在 %s", addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			sugar.Fatalf("服务器启动失败: %v", err)
-		}
-	}()
-
-	// 等待中断信号进行优雅关闭
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-
-	sugar.Info("正在关闭服务器...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := srv.Shutdown(ctx); err != nil {
-		sugar.Fatalf("服务器关闭失败: %v", err)
-	}
-
-	sugar.Info("服务器已关闭")
-}
-
-// setupRoutes 配置所有 API 路由
-// 将路由注册集中管理，便于维护和扩展
-func setupRoutes(r *gin.Engine, authHandler *handler.AuthHandler, proxyHandler *handler.ProxyHandler, vncHandler *handler.VNCHandler, sysConfigRepo *repository.SystemConfigRepo, logger *zap.Logger) {
-	// 健康检查
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"code":    0,
-			"message": "ok",
-			"data":    gin.H{"status": "running"},
-		})
-	})
-
-	// 认证相关路由（不需要 JWT）
-	authGroup := r.Group("/api/auth")
-	{
-		authGroup.POST("/login", authHandler.Login)
-	}
-
-	// 系统管理路由（需要 JWT 认证）
-	adminGroup := r.Group("/api/admin")
-	adminGroup.Use(handler.JWTAuthMiddleware(logger))
-	{
-		adminGroup.GET("/pve-configs", authHandler.GetPVEConfigs)
-		adminGroup.GET("/audit-logs", authHandler.GetAuditLogs)
-		adminGroup.GET("/sys-config", func(c *gin.Context) {
-			configs, err := sysConfigRepo.GetAll()
-			if err != nil {
-				c.JSON(500, gin.H{"code": 500, "message": "获取系统配置失败"})
-				return
-			}
-			c.JSON(200, gin.H{"code": 0, "message": "ok", "data": configs})
-		})
-	}
-
-	// PVE API 代理路由（需要 JWT 认证）
-	pveGroup := r.Group("/api/pve")
-	pveGroup.Use(handler.JWTAuthMiddleware(logger))
-	{
-		// ==================== 集群管理 ====================
-		clusterGroup := pveGroup.Group("/cluster")
-		{
-			clusterGroup.GET("/resources", proxyHandler.GetClusterResources)
-			clusterGroup.GET("/tasks", proxyHandler.GetClusterTasks)
-			clusterGroup.GET("/nextid", proxyHandler.GetNextID)
-			clusterGroup.GET("/ha/config", proxyHandler.GetHAConfig)
-			clusterGroup.GET("/sdn/zones", proxyHandler.GetSDNZones)
-			clusterGroup.GET("/sdn/vnets", proxyHandler.GetSDNVNETs)
-		}
-
-		// ==================== 资源池管理 ====================
-		poolsGroup := pveGroup.Group("/pools")
-		{
-			poolsGroup.GET("", proxyHandler.GetPoolList)
-			poolsGroup.GET("/:poolid", proxyHandler.GetPool)
-		}
-
-		// ==================== 访问控制 ====================
-		accessGroup := pveGroup.Group("/access")
-		{
-			accessGroup.GET("/users", proxyHandler.GetUsers)
-			accessGroup.GET("/groups", proxyHandler.GetGroups)
-			accessGroup.GET("/roles", proxyHandler.GetRoles)
-			accessGroup.GET("/acl", proxyHandler.GetACLs)
-			accessGroup.GET("/domains", proxyHandler.GetDomains)
-		}
-
-		// ==================== 节点操作 ====================
-		nodeGroup := pveGroup.Group("/nodes/:node")
-		{
-			// 节点状态
-			nodeGroup.GET("/status", proxyHandler.GetNodeStatus)
-			nodeGroup.GET("/version", proxyHandler.GetNodeVersion)
-			nodeGroup.GET("/services", proxyHandler.GetNodeServices)
-			nodeGroup.GET("/syslog", proxyHandler.GetNodeSyslog)
-			nodeGroup.GET("/tasks", proxyHandler.GetNodeTasks)
-			nodeGroup.GET("/tasks/:upid/status", proxyHandler.GetNodeTaskStatus)
-			nodeGroup.GET("/tasks/:upid/log", proxyHandler.GetNodeTaskLog)
-			nodeGroup.GET("/tasks/:upid/wait", proxyHandler.WaitForTask)
-			nodeGroup.GET("/network", proxyHandler.GetNodeNetwork)
-			nodeGroup.GET("/dns", proxyHandler.GetNodeDNS)
-			nodeGroup.GET("/time", proxyHandler.GetNodeTime)
-			nodeGroup.GET("/apt/update", proxyHandler.GetNodeAPTUpdate)
-			nodeGroup.GET("/rrd", proxyHandler.GetNodeRRD)
-
-			// ==================== 存储管理 ====================
-			nodeGroup.GET("/storage", proxyHandler.GetStorageList)
-			nodeGroup.GET("/storage/:storage/status", proxyHandler.GetStorageStatus)
-			nodeGroup.GET("/storage/:storage/content", proxyHandler.GetStorageContent)
-			nodeGroup.POST("/storage/:storage/download-url", proxyHandler.DownloadISO)
-
-			// ==================== QEMU 虚拟机 ====================
-			nodeGroup.GET("/qemu", proxyHandler.GetQEMUList)
-			nodeGroup.POST("/qemu", proxyHandler.CreateQEMU)
-			nodeGroup.GET("/qemu/:vmid/config", proxyHandler.GetQEMUConfig)
-			nodeGroup.PUT("/qemu/:vmid/config", proxyHandler.SetQEMUConfig)
-			nodeGroup.POST("/qemu/:vmid/status/:action", proxyHandler.QEMUAction)
-			nodeGroup.DELETE("/qemu/:vmid", proxyHandler.DeleteQEMU)
-			nodeGroup.GET("/qemu/:vmid/snapshot", proxyHandler.GetQEMUSnapshots)
-			nodeGroup.POST("/qemu/:vmid/snapshot", proxyHandler.CreateQEMUSnapshot)
-			nodeGroup.DELETE("/qemu/:vmid/snapshot/:snapname", proxyHandler.DeleteQEMUSnapshot)
-			nodeGroup.POST("/qemu/:vmid/clone", proxyHandler.CloneQEMU)
-			nodeGroup.POST("/qemu/:vmid/migrate", proxyHandler.MigrateQEMU)
-			nodeGroup.GET("/qemu/:vmid/rrd", proxyHandler.GetQEMURRD)
-			nodeGroup.GET("/qemu/:vmid/pending", proxyHandler.GetQEMUPending)
-			nodeGroup.POST("/qemu/:vmid/vncproxy", proxyHandler.VNCProxy)
-
-			// ==================== LXC 容器 ====================
-			nodeGroup.GET("/lxc", proxyHandler.GetLXCList)
-			nodeGroup.POST("/lxc", proxyHandler.CreateLXC)
-			nodeGroup.GET("/lxc/:vmid/config", proxyHandler.GetLXCConfig)
-			nodeGroup.PUT("/lxc/:vmid/config", proxyHandler.SetLXCConfig)
-			nodeGroup.POST("/lxc/:vmid/status/:action", proxyHandler.LXCAction)
-			nodeGroup.DELETE("/lxc/:vmid", proxyHandler.DeleteLXC)
-			nodeGroup.GET("/lxc/:vmid/snapshot", proxyHandler.GetLXCSnapshots)
-			nodeGroup.POST("/lxc/:vmid/snapshot", proxyHandler.CreateLXCSnapshot)
-			nodeGroup.DELETE("/lxc/:vmid/snapshot/:snapname", proxyHandler.DeleteLXCSnapshot)
-		}
-
-		// ==================== VNC 控制台 ====================
-		// VNC 票据查询（HTTP）
-		pveGroup.GET("/nodes/:node/:vmType/:vmid/vnc-ticket", vncHandler.VNCProxyTicket)
-	}
-
-	// VNC WebSocket 代理路由（需要 JWT 认证）
-	// 使用 /api/ws 前缀区分普通 HTTP API 和 WebSocket 端点
-	wsGroup := r.Group("/api/ws")
-	wsGroup.Use(handler.JWTAuthMiddleware(logger))
-	{
-		wsGroup.GET("/vnc/:node/:vmid/:vmType", vncHandler.ProxyVNCWebSocket)
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatalf("服务器启动失败: %v", err)
 	}
 }

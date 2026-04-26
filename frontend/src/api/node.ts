@@ -67,7 +67,7 @@ export async function getNodeSyslog(
   params?: { start?: number; limit?: number; since?: number; until?: number; service?: string },
   options?: QueryOptions,
 ): Promise<NodeSyslog[]> {
-  return get<NodeSyslog[]>(`/pve/nodes/${node}/journal`, params, options)
+  return get<NodeSyslog[]>(`/pve/nodes/${node}/syslog`, params, options)
 }
 
 /**

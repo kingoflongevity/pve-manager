@@ -1,55 +1,50 @@
+/**
+ * 认证工具函数（E2E 测试用）
+ * 
+ * 使用 page.evaluate + page.reload() 的组合方式确保 localStorage 被正确设置。
+ */
 import { Page } from '@playwright/test'
 
 /**
- * 模拟认证令牌（用于测试环境）
- * 该令牌用于绕过实际 API 调用，直接模拟已登录状态
- */
-const MOCK_AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock-token.e2e-test'
-
-/**
- * 在页面加载前设置模拟认证信息到 localStorage
- *
- * 使用场景:
- * - 需要直接访问需要认证的页面（如仪表盘、VM列表）
- * - 避免实际调用 PVE API 登录接口
- *
- * 注意:
- * - 必须在 page.goto() 之前调用
- * - 需要配合 page.addInitScript() 使用
- * - 脚本会在页面任何代码执行前同步执行，确保路由守卫能读取到 token
- *
- * @param page - Playwright Page 实例
- */
-export async function mockAuth(page: Page): Promise<void> {
-  await page.addInitScript((token) => {
-    // 在页面任何代码之前同步设置 localStorage
-    // 这样 Vue Router 的守卫可以正确读取到 token
-    localStorage.setItem('pve_token', token)
-  }, MOCK_AUTH_TOKEN)
-}
-
-/**
  * 模拟认证并导航到指定页面
- *
- * 这是 mockAuth + page.goto() 的便捷组合方法
- *
- * @param page - Playwright Page 实例
- * @param url - 要导航到的页面路径（相对路径，如 '/' 或 '/qemu'）
  */
 export async function gotoAuthenticatedPage(page: Page, url: string = '/'): Promise<void> {
-  await mockAuth(page)
+  // 先导航到目标 URL
   await page.goto(url)
-  // 等待页面加载完成
   await page.waitForLoadState('networkidle')
+  
+  // 在页面上设置 localStorage
+  await page.evaluate(() => {
+    localStorage.setItem('pve_token', 'test-token-e2e')
+  })
+  
+  // 验证设置成功
+  const token = await page.evaluate(() => localStorage.getItem('pve_token'))
+  if (token !== 'test-token-e2e') {
+    throw new Error('Failed to set auth token in localStorage')
+  }
+  
+  // 使用 page.evaluate 调用 Vue Router 跳转到目标页面
+  // 这样不会触发完整的页面刷新，token 会被保留
+  await page.evaluate((targetUrl) => {
+    // 如果已经在正确的页面，直接返回
+    if (window.location.pathname === targetUrl || (targetUrl === '/' && window.location.pathname === '/')) {
+      return
+    }
+    // 使用 window.location 跳转到目标页面（会保留 localStorage）
+    window.location.href = targetUrl === '/' ? '/' : `/${targetUrl.replace(/^\//, '')}`
+  }, url)
+  
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(500)
 }
 
 /**
- * 清除模拟认证信息
- *
- * @param page - Playwright Page 实例
+ * 清除模拟认证
  */
 export async function clearMockAuth(page: Page): Promise<void> {
   await page.evaluate(() => {
-    localStorage.removeItem('pve_token')
+    localStorage.clear()
+    sessionStorage.clear()
   })
 }

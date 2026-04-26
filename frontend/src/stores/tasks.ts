@@ -3,7 +3,7 @@
  * 管理 PVE 任务列表、轮询刷新、状态筛选等
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, shallowRef } from 'vue'
 import { fetchTasks } from '@/api/tasks'
 import type { Task, TaskStatusFilter } from '@/api/taskTypes'
 
@@ -13,8 +13,8 @@ const POLL_INTERVAL = 5000
 export const useTaskStore = defineStore('tasks', () => {
   // ===== State =====
 
-  /** 全部任务列表 */
-  const tasks = ref<Task[]>([])
+  /** 全部任务列表 - 使用 shallowRef 优化大型数据集性能 */
+  const tasks = shallowRef<Task[]>([])
 
   /** 加载状态 */
   const loading = ref(false)

@@ -53,7 +53,7 @@ export async function getNextID(
 export async function getPools(
   options?: QueryOptions,
 ): Promise<{ poolid: string; comment?: string }[]> {
-  return get<{ poolid: string; comment?: string }[]>('/pve/pools', undefined, options)
+  return get<{ poolid: string; comment?: string }[]>('/pve/cluster/pools', undefined, options)
 }
 
 /**
@@ -65,7 +65,7 @@ export async function getPool(
   poolid: string,
   options?: QueryOptions,
 ): Promise<Pool> {
-  return get<Pool>(`/pve/pools/${poolid}`, undefined, options)
+  return get<Pool>(`/pve/cluster/pools/${poolid}`, undefined, options)
 }
 
 /**
@@ -77,7 +77,7 @@ export async function createPool(
   params: { poolid: string; comment?: string },
   options?: QueryOptions,
 ): Promise<string> {
-  return post<string>('/pve/pools', params as Record<string, unknown>, options)
+  return post<string>('/pve/cluster/pools', params as Record<string, unknown>, options)
 }
 
 /**

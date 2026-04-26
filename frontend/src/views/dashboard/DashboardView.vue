@@ -128,7 +128,7 @@
           <template #header>
             <div class="card-header">
               <span>最近任务</span>
-              <el-link type="primary" :underline="false" @click="router.push('/tasks')">查看全部</el-link>
+              <el-link type="primary" underline="never" @click="router.push('/tasks')">查看全部</el-link>
             </div>
           </template>
           <div class="task-list">
@@ -152,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -186,8 +186,8 @@ const memoryUsageText = computed(() => (memoryUsage.value / (1024 * 1024 * 1024)
 const diskUsageText = computed(() => (diskUsage.value / (1024 * 1024 * 1024)).toFixed(0))
 const networkIOText = computed(() => networkIO.value.toFixed(0))
 
-// 集群资源和虚拟机状态汇总
-const clusterResources = ref<ClusterResource[]>([])
+// 使用 shallowRef 优化大型集群资源数据，避免深度响应式性能损耗
+const clusterResources = shallowRef<ClusterResource[]>([])
 const nodeStatus = ref<{
   name: string
   status: string
@@ -270,20 +270,25 @@ async function loadDashboardData() {
       // 获取第一个节点的详细信息
       if (nodes.length > 0) {
         const firstNode = nodes[0]
-        try {
-          const status = await getNodeStatus(firstNode.name || '')
-          nodeStatus.value = {
-            name: status.node,
-            status: status.status === 'online' ? 'online' : 'offline',
-            statusText: status.status === 'online' ? '在线' : '离线',
-            pveversion: status.pveversion || '-',
-            uptime: status.uptime || 0,
-            kversion: status.kversion || '-',
-            cpus: status.cpus || status.maxcpu || 0,
-            loadavg: Array.isArray(status.loadavg) ? status.loadavg : [0, 0, 0],
+        const nodeName = firstNode.name || firstNode.node || ''
+        if (!nodeName) {
+          console.warn('节点名称为空，跳过获取节点状态')
+        } else {
+          try {
+            const status = await getNodeStatus(nodeName)
+            nodeStatus.value = {
+              name: status.node || firstNode.name || '',
+              status: status.status === 'online' ? 'online' : 'offline',
+              statusText: status.status === 'online' ? '在线' : '离线',
+              pveversion: status.pveversion || '-',
+              uptime: status.uptime || 0,
+              kversion: status.kversion || '-',
+              cpus: status.cpus || status.maxcpu || 0,
+              loadavg: Array.isArray(status.loadavg) ? status.loadavg : [0, 0, 0],
+            }
+          } catch (err) {
+            console.error('获取节点状态失败:', err)
           }
-        } catch (err) {
-          console.error('获取节点状态失败:', err)
         }
       }
     }
@@ -455,46 +460,46 @@ onMounted(() => {
       }
 
       &.action-primary {
-        background: $primary-1;
-        color: $color-primary;
-        border: 1px solid $primary-2;
+        background: $primary-bg;
+        color: $primary-color;
+        border: 1px solid $primary-border;
 
         &:hover {
-          background: $primary-2;
-          border-color: $primary-3;
+          background: $primary-hover;
+          color: #fff;
         }
       }
 
       &.action-success {
-        background: $success-1;
-        color: $success-7;
-        border: 1px solid $success-2;
+        background: $success-bg;
+        color: $success-color;
+        border: 1px solid $success-border;
 
         &:hover {
-          background: $success-2;
-          border-color: $success-3;
+          background: $success-color;
+          color: #fff;
         }
       }
 
       &.action-warning {
-        background: $warning-1;
-        color: $warning-7;
-        border: 1px solid $warning-2;
+        background: $warning-bg;
+        color: $warning-color;
+        border: 1px solid $warning-border;
 
         &:hover {
-          background: $warning-2;
-          border-color: $warning-3;
+          background: $warning-color;
+          color: #fff;
         }
       }
 
       &.action-danger {
-        background: $danger-1;
-        color: $danger-7;
-        border: 1px solid $danger-2;
+        background: $danger-bg;
+        color: $danger-color;
+        border: 1px solid $danger-border;
 
         &:hover {
-          background: $danger-2;
-          border-color: $danger-3;
+          background: $danger-color;
+          color: #fff;
         }
       }
     }

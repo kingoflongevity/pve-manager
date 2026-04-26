@@ -478,23 +478,23 @@ function getTimelineColor(status: BackupJobStatus): string {
   justify-content: center;
 
   &.primary {
-    background: $primary-1;
-    color: $color-primary;
+    background: $primary-bg;
+    color: $primary-color;
   }
 
   &.success {
-    background: $success-1;
-    color: $color-success;
+    background: $success-bg;
+    color: $success-color;
   }
 
   &.danger {
-    background: $danger-1;
-    color: $color-danger;
+    background: $danger-bg;
+    color: $danger-color;
   }
 
   &.info {
-    background: $info-1;
-    color: $color-info;
+    background: $info-bg;
+    color: $info-color;
   }
 }
 
@@ -513,11 +513,11 @@ function getTimelineColor(status: BackupJobStatus): string {
     color: $color-text-primary;
 
     &.success {
-      color: $color-success;
+      color: $success-color;
     }
 
     &.danger {
-      color: $color-danger;
+      color: $danger-color;
     }
   }
 }
@@ -561,7 +561,7 @@ function getTimelineColor(status: BackupJobStatus): string {
 
   .target-icon {
     font-size: 18px;
-    color: $color-primary;
+    color: $primary-color;
     flex-shrink: 0;
   }
 
@@ -691,7 +691,7 @@ function getTimelineColor(status: BackupJobStatus): string {
 
   .target-icon {
     font-size: 16px;
-    color: $color-primary;
+    color: $primary-color;
   }
 
   .history-target {

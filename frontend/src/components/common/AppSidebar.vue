@@ -155,16 +155,18 @@ function handleNodeChange(host: string) {
 </script>
 
 <style lang="scss" scoped>
+@use '@/assets/styles/variables' as *;
+
 .app-sidebar {
   width: 280px;
   min-width: 280px;
   height: 100vh;
-  background: #111827;
+  background: $color-bg-container;
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
   overflow: hidden;
-  border-right: 1px solid rgba(59, 130, 246, 0.1);
+  border-right: 1px solid $color-border-light;
 
   &.collapsed {
     width: 64px;
@@ -183,16 +185,16 @@ function handleNodeChange(host: string) {
   height: 56px;
   padding: 0 16px;
   gap: 8px;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-  color: #fff;
+  border-bottom: 1px solid $color-border-light;
+  color: $color-text-primary;
   font-weight: 600;
   font-size: 15px;
   white-space: nowrap;
-  background: rgba(0, 0, 0, 0.2);
-  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  background: $color-bg-elevated;
+  font-family: 'Fira Code', 'Consolas', monospace;
 
   .logo-icon {
-    color: #3b82f6;
+    color: $green-500;
     flex-shrink: 0;
   }
 
@@ -204,31 +206,31 @@ function handleNodeChange(host: string) {
 
 .node-selector {
   padding: 12px;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid $color-border-light;
 
   :deep(.node-select) {
     .el-input__wrapper {
-      background: rgba(255, 255, 255, 0.03);
+      background: $color-bg-hover;
       box-shadow: none;
-      border: 1px solid rgba(59, 130, 246, 0.15);
+      border: 1px solid $color-border-light;
       border-radius: 6px;
 
       &:hover {
-        box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3) inset;
+        box-shadow: 0 0 0 1px $primary-border inset;
       }
 
       &.is-focus {
-        box-shadow: 0 0 0 1px #3b82f6 inset;
+        box-shadow: 0 0 0 1px $green-500 inset;
       }
     }
 
     .el-input__inner {
-      color: #e5e7eb;
-      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      color: $color-text-regular;
+      font-family: 'Fira Code', 'Consolas', monospace;
     }
 
     .el-input__placeholder {
-      color: #6b7280;
+      color: $slate-600;
     }
   }
 }
@@ -257,7 +259,7 @@ function handleNodeChange(host: string) {
   align-items: center;
   justify-content: center;
   border-radius: 0;
-  color: #6b7280;
+  color: $slate-500;
   position: relative;
 
   &::before {
@@ -272,35 +274,35 @@ function handleNodeChange(host: string) {
   }
 
   &:hover {
-    color: #e5e7eb;
-    background: rgba(59, 130, 246, 0.1);
+    color: $color-text-regular;
+    background: $color-bg-hover;
   }
 
   &.active {
-    color: #3b82f6;
-    background: rgba(59, 130, 246, 0.15);
+    color: $green-500;
+    background: $color-bg-active;
 
     &::before {
-      background: #3b82f6;
+      background: $green-500;
     }
   }
 }
 
 .sidebar-footer {
   padding: 8px;
-  border-top: 1px solid rgba(59, 130, 246, 0.1);
-  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid $color-border-light;
+  background: $color-bg-elevated;
 
   .collapse-btn {
     width: 100%;
     height: 40px;
-    color: #6b7280;
+    color: $slate-500;
     justify-content: center;
     border-radius: 6px;
 
     &:hover {
-      color: #e5e7eb;
-      background: rgba(59, 130, 246, 0.1);
+      color: $color-text-regular;
+      background: $color-bg-hover;
     }
   }
 }

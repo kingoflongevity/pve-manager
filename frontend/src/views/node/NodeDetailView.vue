@@ -1267,7 +1267,7 @@ onUnmounted(() => {
 
   &.log-warning {
     .log-message {
-      color: $warning-4;
+      color: $orange-400;
     }
   }
 

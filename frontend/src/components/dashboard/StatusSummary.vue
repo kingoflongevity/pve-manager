@@ -91,13 +91,14 @@ function handleClick(item: StatusItem) {
 
 .status-summary {
   background: $color-bg-container;
-  border-radius: $radius-base;
+  border-radius: $radius-lg;
   padding: $spacing-6;
-  box-shadow: $shadow-card;
-  transition: $transition-base;
+  box-shadow: $shadow-base;
+  transition: $transition-slow;
+  border: 1px solid $color-border-light;
 
   &:hover {
-    box-shadow: $shadow-card-hover;
+    box-shadow: $shadow-lg;
   }
 }
 
@@ -112,6 +113,7 @@ function handleClick(item: StatusItem) {
     font-weight: $font-weight-semibold;
     color: $color-text-primary;
     margin: 0;
+    letter-spacing: 0.025em;
   }
 }
 
@@ -127,12 +129,17 @@ function handleClick(item: StatusItem) {
   align-items: center;
   gap: $spacing-3;
   cursor: pointer;
-  padding: $spacing-2 $spacing-3;
-  border-radius: $radius-sm;
-  transition: $transition-fast;
+  padding: $spacing-3 $spacing-4;
+  border-radius: $radius-base;
+  transition: $transition-base;
+  background: rgba($slate-800, 0.4);
+  border: 1px solid transparent;
+  flex: 1;
+  min-width: 120px;
 
   &:hover {
-    background: $gray-2;
+    background: $color-bg-hover;
+    border-color: var(--status-color, $green-500);
   }
 
   .status-indicator {
@@ -140,31 +147,35 @@ function handleClick(item: StatusItem) {
     height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 8px var(--status-color, $green-500);
   }
 
   .status-label {
     color: $color-text-secondary;
     font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    flex: 1;
   }
 
   .status-count {
     color: $color-text-primary;
-    font-weight: $font-weight-semibold;
-    font-size: $font-size-lg;
-    margin-left: auto;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-xl;
+    font-family: $font-family-mono;
   }
 }
 
 .status-bar {
   height: 8px;
-  background: $gray-3;
+  background: $slate-800;
   border-radius: $radius-full;
   overflow: hidden;
   margin-bottom: $spacing-4;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 
   .status-bar-segment {
     height: 100%;
-    transition: width $duration-slow $ease-out;
+    transition: width $transition-slow;
   }
 }
 
@@ -174,6 +185,7 @@ function handleClick(item: StatusItem) {
   .total-text {
     color: $color-text-secondary;
     font-size: $font-size-sm;
+    font-family: $font-family-mono;
   }
 }
 </style>

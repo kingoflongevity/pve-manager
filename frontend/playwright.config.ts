@@ -35,7 +35,7 @@ export default defineConfig({
   // 共享配置
   use: {
     // 基础 URL
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:8088',
 
     // 失败时截图
     screenshot: 'only-on-failure',
