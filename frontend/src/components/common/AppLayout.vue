@@ -1,9 +1,9 @@
 <template>
   <div class="app-layout">
-    <AppSidebar :collapsed="collapsed" @toggle="$emit('toggle')" />
+    <AppSidebar :collapsed="collapsed" @toggle="toggle" />
 
     <div class="main-container">
-      <AppHeader :collapsed="collapsed" @toggle="$emit('toggle')" />
+      <AppHeader :collapsed="collapsed" @toggle="toggle" />
       <main class="content">
         <router-view />
       </main>
@@ -12,16 +12,13 @@
 </template>
 
 <script setup lang="ts">
+import { inject } from 'vue'
+import type { Ref } from 'vue'
 import AppHeader from './AppHeader.vue'
 import AppSidebar from './AppSidebar.vue'
 
-defineProps<{
-  collapsed: boolean
-}>()
-
-defineEmits<{
-  toggle: []
-}>()
+const collapsed = inject<Ref<boolean>>('sidebarCollapsed')!
+const toggle = inject<() => void>('toggleSidebar')!
 </script>
 
 <style scoped lang="scss">

@@ -40,43 +40,79 @@
       <el-tooltip :content="t('layout.dashboard')" placement="right">
         <el-button
           text
-          :class="['compact-nav-item', { active: currentRoute === '/' }]"
+          :class="['compact-nav-item', { active: matchRoute('/') }]"
           @click="router.push('/')"
         >
           <el-icon><DataBoard /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="'备份管理'" placement="right">
+      <el-tooltip content="虚拟机管理" placement="right">
         <el-button
           text
-          :class="['compact-nav-item', { active: currentRoute === '/backup' }]"
+          :class="['compact-nav-item', { active: matchRoute('/qemu') }]"
+          @click="router.push('/qemu')"
+        >
+          <el-icon><Monitor /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="容器管理" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: matchRoute('/lxc') }]"
+          @click="router.push('/lxc')"
+        >
+          <el-icon><Box /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="存储管理" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: matchRoute('/storage') }]"
+          @click="router.push('/storage')"
+        >
+          <el-icon><FolderOpened /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="集群概览" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: matchRoute('/cluster') }]"
+          @click="router.push('/cluster')"
+        >
+          <el-icon><Connection /></el-icon>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="备份管理" placement="right">
+        <el-button
+          text
+          :class="['compact-nav-item', { active: matchRoute('/backup') }]"
           @click="router.push('/backup')"
         >
           <el-icon><Files /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="'监控中心'" placement="right">
+      <el-tooltip content="监控中心" placement="right">
         <el-button
           text
-          :class="['compact-nav-item', { active: currentRoute === '/monitor' }]"
+          :class="['compact-nav-item', { active: matchRoute('/monitor') }]"
           @click="router.push('/monitor')"
         >
           <el-icon><Odometer /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="'访问管理'" placement="right">
+      <el-tooltip content="访问管理" placement="right">
         <el-button
           text
-          :class="['compact-nav-item', { active: currentRoute === '/access' }]"
+          :class="['compact-nav-item', { active: matchRoute('/access') }]"
           @click="router.push('/access')"
         >
           <el-icon><Key /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip :content="'节点管理'" placement="right">
+      <el-tooltip content="节点管理" placement="right">
         <el-button
           text
-          :class="['compact-nav-item', { active: currentRoute === '/nodes' }]"
+          :class="['compact-nav-item', { active: matchRoute('/nodes') }]"
           @click="router.push('/nodes')"
         >
           <el-icon><Monitor /></el-icon>
@@ -85,7 +121,7 @@
       <el-tooltip :content="t('layout.settings')" placement="right">
         <el-button
           text
-          :class="['compact-nav-item', { active: currentRoute === '/settings' }]"
+          :class="['compact-nav-item', { active: matchRoute('/settings') }]"
           @click="router.push('/settings')"
         >
           <el-icon><Setting /></el-icon>
@@ -98,7 +134,7 @@
       <el-button
         text
         class="collapse-btn"
-        @click="$emit('toggle')"
+        @click="toggle"
       >
         <el-icon>
           <DArrowLeft v-if="!collapsed" />
@@ -110,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -124,13 +160,16 @@ import {
   Files,
   Odometer,
   Key,
+  Box,
+  FolderOpened,
+  Connection,
 } from '@element-plus/icons-vue'
 
-defineProps<{
+const props = defineProps<{
   collapsed: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   toggle: []
 }>()
 
@@ -138,19 +177,31 @@ const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
 
-// 当前路由路径（用于菜单高亮）
-const currentRoute = computed(() => router.currentRoute.value.path)
+function matchRoute(path: string): boolean {
+  if (path === '/') {
+    return router.currentRoute.value.path === '/'
+  }
+  return router.currentRoute.value.path.startsWith(path)
+}
 
-// 节点选择
 const savedNodes = computed(() => authStore.savedNodes)
 const selectedNode = ref(authStore.currentNode?.host || '')
 
-/** 处理节点切换 */
+watch(() => authStore.currentNode?.host, (newHost) => {
+  if (newHost) {
+    selectedNode.value = newHost
+  }
+})
+
 function handleNodeChange(host: string) {
   const node = savedNodes.value.find((n) => n.host === host)
   if (node) {
     authStore.currentNode = node
   }
+}
+
+function toggle() {
+  emit('toggle')
 }
 </script>
 

@@ -1277,7 +1277,7 @@ onUnmounted(() => {
   &.log-alert,
   &.log-emerg {
     .log-message {
-      color: $danger-4;
+      color: $red-400;
     }
   }
 }

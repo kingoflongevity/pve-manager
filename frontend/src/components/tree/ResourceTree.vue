@@ -142,7 +142,7 @@ import {
   Monitor, Box, FolderOpened,
 } from '@element-plus/icons-vue'
 import type { ElTree } from 'element-plus'
-import type { AbstractTreeNode } from '@/models/resourceTree'
+import type { AbstractTreeNode, LeafResourceNode } from '@/models/resourceTree'
 import { ResourceTypeEnum, ResourceStatusEnum, isResourceGroupNode, isLeafResourceNode } from '@/models/resourceTree'
 
 /**
@@ -278,15 +278,16 @@ function handleNodeClick(data: AbstractTreeNode): void {
  * 根据资源类型导航到对应路由
  */
 function navigateToResource(data: AbstractTreeNode): void {
-  // 分组节点不导航
   if (isResourceGroupNode(data)) return
+
+  const leafNode = isLeafResourceNode(data) ? (data as LeafResourceNode) : null
 
   const routeMap: Record<string, string> = {
     [ResourceTypeEnum.DataCenter]: '/',
     [ResourceTypeEnum.Node]: `/nodes/${data.name}`,
-    [ResourceTypeEnum.VM]: isLeafResourceNode(data) ? `/qemu/${data.resourceId}` : `/qemu/${data.id}`,
-    [ResourceTypeEnum.Container]: isLeafResourceNode(data) ? `/lxc/${data.resourceId}` : `/lxc/${data.id}`,
-    [ResourceTypeEnum.Storage]: `/storage/${data.name}`,
+    [ResourceTypeEnum.VM]: leafNode ? `/qemu/${leafNode.nodeName}/${leafNode.resourceId}` : `/qemu/${data.id}`,
+    [ResourceTypeEnum.Container]: leafNode ? `/lxc/${leafNode.nodeName}/${leafNode.resourceId}` : `/lxc/${data.id}`,
+    [ResourceTypeEnum.Storage]: leafNode ? `/storage/${leafNode.nodeName}/${leafNode.resourceId || data.name}` : `/storage/${data.id}`,
     [ResourceTypeEnum.Network]: `/network/${data.name}`,
   }
 
