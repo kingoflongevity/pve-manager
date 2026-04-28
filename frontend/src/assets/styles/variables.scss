@@ -113,6 +113,37 @@ $color-info: $info-color;
 $color-info-bg: $info-bg;
 
 // ============================================================
+// Color Scale Variables (Ant Design style)
+// 用于兼容 $primary-1, $success-6 等色阶引用
+// ============================================================
+
+// Primary (Green) scale
+$primary-1: var(--color-primary-bg, rgba(34, 197, 94, 0.1));
+$primary-2: var(--color-primary-bg, rgba(34, 197, 94, 0.2));
+$primary-4: var(--color-primary-border, rgba(34, 197, 94, 0.4));
+$primary-7: var(--color-primary-active, $green-700);
+$primary-9: $green-900;
+
+// Success (Green) scale
+$success-1: var(--color-success-bg, rgba(34, 197, 94, 0.1));
+$success-6: var(--color-success, $green-500);
+$success-7: var(--color-primary-active, $green-600);
+
+// Danger (Red) scale
+$danger-1: var(--color-danger-bg, rgba(239, 68, 68, 0.1));
+$danger-6: var(--color-danger, $red-500);
+$danger-7: $red-600;
+
+// Warning (Orange) scale
+$warning-1: var(--color-warning-bg, rgba(251, 146, 60, 0.1));
+$warning-7: var(--color-warning, $orange-500);
+
+// Info (Blue) scale
+$info-1: var(--color-info-bg, rgba(96, 165, 250, 0.1));
+$info-6: var(--color-info, $blue-400);
+$info-7: $blue-500;
+
+// ============================================================
 // Background Colors (运行时通过 CSS 变量切换)
 // ============================================================
 

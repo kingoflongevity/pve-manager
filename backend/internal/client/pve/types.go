@@ -41,6 +41,8 @@ type QEMUVM struct {
 	Status    string   `json:"status,omitempty"`
 	CPU       float64  `json:"cpu,omitempty"`
 	CPUs      int      `json:"cpus,omitempty"`
+	Disk      uint64   `json:"disk,omitempty"`
+	MaxDisk   uint64   `json:"maxdisk,omitempty"`
 	Mem       uint64   `json:"mem,omitempty"`
 	MaxMem    uint64   `json:"maxmem,omitempty"`
 	DiskRead  uint64   `json:"diskread,omitempty"`
@@ -230,6 +232,8 @@ type LXCContainer struct {
 	Status    string   `json:"status,omitempty"`
 	CPU       float64  `json:"cpu,omitempty"`
 	CPUs      int      `json:"cpus,omitempty"`
+	Disk      uint64   `json:"disk,omitempty"`
+	MaxDisk   uint64   `json:"maxdisk,omitempty"`
 	Mem       uint64   `json:"mem,omitempty"`
 	MaxMem    uint64   `json:"maxmem,omitempty"`
 	DiskRead  uint64   `json:"diskread,omitempty"`
@@ -486,12 +490,17 @@ type TimeInfo struct {
 
 // Storage 存储简要信息
 type Storage struct {
-	Storage string `json:"storage"`
-	Type    string `json:"type"`
-	Content string `json:"content,omitempty"`
-	Shared  int    `json:"shared,omitempty"`
-	Enabled int    `json:"enabled,omitempty"`
-	Active  int    `json:"active,omitempty"`
+	Storage    string `json:"storage"`
+	Type       string `json:"type"`
+	PluginType string `json:"plugintype,omitempty"`
+	Content    string `json:"content,omitempty"`
+	Shared     int    `json:"shared,omitempty"`
+	Enabled    int    `json:"enabled,omitempty"`
+	Active     int    `json:"active,omitempty"`
+	Total      uint64 `json:"total,omitempty"`
+	Used       uint64 `json:"used,omitempty"`
+	Avail      uint64 `json:"avail,omitempty"`
+	Path       string `json:"path,omitempty"`
 }
 
 // StorageStatus 存储状态详情
@@ -538,6 +547,7 @@ type ClusterResource struct {
 	Type      string  `json:"type"`
 	CGroup    string  `json:"cgroup,omitempty"`
 	CPU       float64 `json:"cpu,omitempty"`
+	Disk      uint64  `json:"disk,omitempty"`
 	HA        int     `json:"h,omitempty"`
 	Level     string  `json:"level,omitempty"`
 	MaxCPU    int     `json:"maxcpu,omitempty"`
