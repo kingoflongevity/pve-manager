@@ -101,12 +101,12 @@ func (h *ProxyHandler) GetNextID(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	data, err := h.clusterService.GetNextID(c.Request.Context(), client)
-	if err != nil {
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/nextid", &result); err != nil {
 		h.serverError(c, "获取下一个 VM ID 失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	h.success(c, result)
 }
 
 func (h *ProxyHandler) GetHAConfig(c *gin.Context) {
@@ -115,12 +115,12 @@ func (h *ProxyHandler) GetHAConfig(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	data, err := h.clusterService.GetHAConfig(c.Request.Context(), client)
-	if err != nil {
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/ha/status", &result); err != nil {
 		h.serverError(c, "获取 HA 配置失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	h.success(c, result)
 }
 
 func (h *ProxyHandler) GetSDNZones(c *gin.Context) {
@@ -444,18 +444,25 @@ func (h *ProxyHandler) GetNodeAPTUpdate(c *gin.Context) {
 func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 	node := c.Param("node")
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.Query("dataset")
+	dataset := c.Query("ds")
+	if dataset == "" {
+		dataset = c.Query("dataset")
+	}
+	if dataset == "" {
+		dataset = "cpu,mem,disk,net"
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	data, err := h.nodeService.GetRRD(c.Request.Context(), client, node, timeframe, dataset)
-	if err != nil {
+	path := fmt.Sprintf("nodes/%s/rrd?timeframe=%s&ds=%s", node, timeframe, dataset)
+	var result interface{}
+	if err := client.Get(c.Request.Context(), path, &result); err != nil {
 		h.serverError(c, "获取性能数据失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	h.success(c, result)
 }
 
 // ==================== 存储管理 ====================
@@ -790,18 +797,25 @@ func (h *ProxyHandler) GetQEMURRD(c *gin.Context) {
 		return
 	}
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.Query("dataset")
+	dataset := c.Query("ds")
+	if dataset == "" {
+		dataset = c.Query("dataset")
+	}
+	if dataset == "" {
+		dataset = "cpu,mem,disk,net"
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	data, err := h.vmService.GetRRD(c.Request.Context(), client, node, vmid, timeframe, dataset)
-	if err != nil {
-		h.serverError(c, "获取性能数据失败: "+err.Error())
+	path := fmt.Sprintf("nodes/%s/qemu/%d/rrd?timeframe=%s&ds=%s", node, vmid, timeframe, dataset)
+	var result interface{}
+	if err := client.Get(c.Request.Context(), path, &result); err != nil {
+		h.serverError(c, "获取虚拟机性能数据失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	h.success(c, result)
 }
 
 func (h *ProxyHandler) GetQEMUPending(c *gin.Context) {
@@ -816,12 +830,13 @@ func (h *ProxyHandler) GetQEMUPending(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	data, err := h.vmService.GetPending(c.Request.Context(), client, node, vmid)
-	if err != nil {
+	var result interface{}
+	path := fmt.Sprintf("nodes/%s/qemu/%d/pending", node, vmid)
+	if err := client.Get(c.Request.Context(), path, &result); err != nil {
 		h.serverError(c, "获取待处理配置失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	h.success(c, result)
 }
 
 func (h *ProxyHandler) VNCProxy(c *gin.Context) {
@@ -1044,6 +1059,353 @@ func (h *ProxyHandler) DeleteLXCSnapshot(c *gin.Context) {
 	h.success(c, gin.H{"upid": data, "message": "容器快照删除任务已提交"})
 }
 
+// ==================== 集群管理（扩展方法） ====================
+
+// GetClusterStorage 获取集群级存储列表
+func (h *ProxyHandler) GetClusterStorage(c *gin.Context) {
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/storage", &result); err != nil {
+		h.serverError(c, "获取集群存储列表失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
+// GetClusterConfig 获取数据中心配置
+func (h *ProxyHandler) GetClusterConfig(c *gin.Context) {
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/config", &result); err != nil {
+		h.serverError(c, "获取数据中心配置失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
+// GetClusterLog 获取集群日志
+func (h *ProxyHandler) GetClusterLog(c *gin.Context) {
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/log", &result); err != nil {
+		h.serverError(c, "获取集群日志失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
+// GetReplicationJobs 获取复制任务列表
+func (h *ProxyHandler) GetReplicationJobs(c *gin.Context) {
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/replication", &result); err != nil {
+		h.serverError(c, "获取复制任务列表失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
+// GetHAGroups 获取 HA 组列表
+func (h *ProxyHandler) GetHAGroups(c *gin.Context) {
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/ha/groups", &result); err != nil {
+		h.serverError(c, "获取 HA 组列表失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
+// GetHAResources 获取 HA 资源列表
+func (h *ProxyHandler) GetHAResources(c *gin.Context) {
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	if err := client.Get(c.Request.Context(), "cluster/ha/resources", &result); err != nil {
+		h.serverError(c, "获取 HA 资源列表失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
+// CreatePool 创建资源池
+func (h *ProxyHandler) CreatePool(c *gin.Context) {
+	var req struct {
+		PoolID  string `json:"poolid" binding:"required"`
+		Comment string `json:"comment"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.badRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.CreatePool(c.Request.Context(), req.PoolID, req.Comment)
+	if err != nil {
+		h.serverError(c, "创建资源池失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// ==================== 访问控制（扩展方法） ====================
+
+// GetUser 获取单个用户信息
+func (h *ProxyHandler) GetUser(c *gin.Context) {
+	userid := c.Param("userid")
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.GetUser(c.Request.Context(), userid)
+	if err != nil {
+		h.serverError(c, "获取用户信息失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// UpdateUser 更新用户信息
+func (h *ProxyHandler) UpdateUser(c *gin.Context) {
+	userid := c.Param("userid")
+	var params map[string]interface{}
+	if err := c.ShouldBindJSON(&params); err != nil {
+		h.badRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.UpdateUser(c.Request.Context(), userid, params)
+	if err != nil {
+		h.serverError(c, "更新用户信息失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// UpdateUserPassword 修改用户密码
+func (h *ProxyHandler) UpdateUserPassword(c *gin.Context) {
+	userid := c.Param("userid")
+	var req struct {
+		Password string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.badRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.SetUserPassword(c.Request.Context(), userid, req.Password)
+	if err != nil {
+		h.serverError(c, "修改用户密码失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// GetGroup 获取单个用户组信息
+func (h *ProxyHandler) GetGroup(c *gin.Context) {
+	groupid := c.Param("groupid")
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	if err := client.Get(c.Request.Context(), fmt.Sprintf("access/groups/%s", groupid), &result); err != nil {
+		h.serverError(c, "获取用户组信息失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
+// CreateGroup 创建用户组
+func (h *ProxyHandler) CreateGroup(c *gin.Context) {
+	var params pve.GroupCreateParams
+	if err := c.ShouldBindJSON(&params); err != nil {
+		h.badRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.CreateGroup(c.Request.Context(), &params)
+	if err != nil {
+		h.serverError(c, "创建用户组失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// UpdateGroup 更新用户组信息
+func (h *ProxyHandler) UpdateGroup(c *gin.Context) {
+	groupid := c.Param("groupid")
+	var params map[string]interface{}
+	if err := c.ShouldBindJSON(&params); err != nil {
+		h.badRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.UpdateGroup(c.Request.Context(), groupid, params)
+	if err != nil {
+		h.serverError(c, "更新用户组失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// DeleteGroup 删除用户组
+func (h *ProxyHandler) DeleteGroup(c *gin.Context) {
+	groupid := c.Param("groupid")
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.DeleteGroup(c.Request.Context(), groupid)
+	if err != nil {
+		h.serverError(c, "删除用户组失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// CreateRole 创建角色
+func (h *ProxyHandler) CreateRole(c *gin.Context) {
+	var params pve.RoleCreateParams
+	if err := c.ShouldBindJSON(&params); err != nil {
+		h.badRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.CreateRole(c.Request.Context(), &params)
+	if err != nil {
+		h.serverError(c, "创建角色失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// UpdateRole 更新角色权限
+func (h *ProxyHandler) UpdateRole(c *gin.Context) {
+	roleid := c.Param("roleid")
+	var req struct {
+		Privs string `json:"privs" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.badRequest(c, "参数错误: "+err.Error())
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.UpdateRole(c.Request.Context(), roleid, req.Privs)
+	if err != nil {
+		h.serverError(c, "更新角色失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// DeleteRole 删除角色
+func (h *ProxyHandler) DeleteRole(c *gin.Context) {
+	roleid := c.Param("roleid")
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.DeleteRole(c.Request.Context(), roleid)
+	if err != nil {
+		h.serverError(c, "删除角色失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// GetDomain 获取单个认证域信息
+func (h *ProxyHandler) GetDomain(c *gin.Context) {
+	realm := c.Param("realm")
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	data, err := client.GetDomain(c.Request.Context(), realm)
+	if err != nil {
+		h.serverError(c, "获取认证域信息失败: "+err.Error())
+		return
+	}
+	h.success(c, data)
+}
+
+// LXCVNCProxy 获取 LXC 容器 VNC 代理
+func (h *ProxyHandler) LXCVNCProxy(c *gin.Context) {
+	node := c.Param("node")
+	vmid, err := strconv.Atoi(c.Param("vmid"))
+	if err != nil {
+		h.badRequest(c, "容器 ID 格式错误")
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	path := fmt.Sprintf("nodes/%s/lxc/%d/vncproxy", node, vmid)
+	if err := client.Post(c.Request.Context(), path, nil, &result); err != nil {
+		h.serverError(c, "获取 LXC VNC 代理失败: "+err.Error())
+		return
+	}
+	h.success(c, result)
+}
+
 // ==================== 辅助方法 ====================
 
 // success 返回成功响应
@@ -1053,18 +1415,25 @@ func (h *ProxyHandler) GetLXCRRD(c *gin.Context) {
 	node := c.Param("node")
 	vmid, _ := strconv.Atoi(c.Param("vmid"))
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.Query("dataset")
+	dataset := c.Query("ds")
+	if dataset == "" {
+		dataset = c.Query("dataset")
+	}
+	if dataset == "" {
+		dataset = "cpu,mem,disk,net"
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	data, err := h.containerService.GetRRD(c.Request.Context(), client, node, vmid, timeframe, dataset)
-	if err != nil {
+	path := fmt.Sprintf("nodes/%s/lxc/%d/rrd?timeframe=%s&ds=%s", node, vmid, timeframe, dataset)
+	var result interface{}
+	if err := client.Get(c.Request.Context(), path, &result); err != nil {
 		h.serverError(c, "获取 LXC RRD 数据失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	h.success(c, result)
 }
 
 func (h *ProxyHandler) GetLXCPending(c *gin.Context) {
@@ -1075,12 +1444,13 @@ func (h *ProxyHandler) GetLXCPending(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	data, err := h.containerService.GetPending(c.Request.Context(), client, node, vmid)
-	if err != nil {
+	var result interface{}
+	path := fmt.Sprintf("nodes/%s/lxc/%d/pending", node, vmid)
+	if err := client.Get(c.Request.Context(), path, &result); err != nil {
 		h.serverError(c, "获取 LXC 待处理配置失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	h.success(c, result)
 }
 
 func (h *ProxyHandler) CloneLXC(c *gin.Context) {
@@ -1331,6 +1701,7 @@ func (h *ProxyHandler) badRequest(c *gin.Context, message string) {
 
 // serverError 返回服务器错误
 func (h *ProxyHandler) serverError(c *gin.Context, message string) {
+	h.logger.Error("服务错误", zap.String("error", message), zap.String("path", c.Request.URL.Path))
 	c.JSON(http.StatusInternalServerError, gin.H{
 		"code":    500,
 		"message": message,

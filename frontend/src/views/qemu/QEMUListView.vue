@@ -169,6 +169,7 @@ import BatchOperationBar from '@/components/batch/BatchOperationBar.vue'
 import QEMUCreateWizard from '@/components/qemu/QEMUCreateWizard.vue'
 import { useBatchStore } from '@/stores/batch'
 import { fetchQEMUList, startQEMU, stopQEMU, rebootQEMU, shutdownQEMU } from '@/api/qemu'
+import { getClusterResources } from '@/api/cluster'
 import { formatBytes, formatUptime } from '@/utils/format'
 import type { QEMUVM } from '@/api/types'
 
@@ -191,12 +192,14 @@ const showCreateWizard = ref(false)
 async function loadVMList() {
   loading.value = true
   try {
-    // 获取所有节点的虚拟机
-    const nodes = new Set(vmList.value.map(v => v.node))
-    if (nodes.size === 0) nodes.add('pve-node-01')
+    const resources = await getClusterResources()
+    const nodeNames = resources
+      .filter(r => r.type === 'node')
+      .map(r => r.node || r.name || r.id)
+      .filter(Boolean)
 
     const allVMs: QEMUVM[] = []
-    for (const node of nodes) {
+    for (const node of nodeNames) {
       try {
         const vms = await fetchQEMUList(node)
         allVMs.push(...vms)
@@ -204,7 +207,7 @@ async function loadVMList() {
         console.warn(`获取节点 ${node} 虚拟机列表失败:`, e)
       }
     }
-    vmList.value = allVMs.length > 0 ? allVMs : vmList.value
+    vmList.value = allVMs
   } catch (error) {
     console.error('获取虚拟机列表失败:', error)
   } finally {

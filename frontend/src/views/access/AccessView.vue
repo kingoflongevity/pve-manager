@@ -868,9 +868,11 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+@use '@/assets/styles/variables' as *;
+
 .access-view {
-  padding: 24px;
-  background: #f5f7fa;
+  padding: $spacing-6;
+  background: $color-bg-base;
   min-height: 100%;
 }
 
@@ -878,46 +880,46 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-4;
 
   .header-left {
     h2 {
       margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      color: #262626;
+      font-size: $font-size-2xl;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
     }
 
     .header-subtitle {
-      font-size: 13px;
-      color: #8c8c8c;
-      margin-top: 4px;
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      margin-top: $spacing-1;
     }
   }
 }
 
 .access-tabs {
   :deep(.el-tabs__header) {
-    margin-bottom: 16px;
+    margin-bottom: $spacing-4;
   }
 }
 
 .tab-toolbar {
   display: flex;
-  gap: 12px;
+  gap: $spacing-3;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-4;
 }
 
 .privilege-grid {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  padding: 12px;
+  border: 1px solid $color-border-light;
+  border-radius: $radius-sm;
+  padding: $spacing-3;
 
   .el-checkbox {
-    margin: 4px 0;
+    margin: $spacing-1 0;
   }
 }
 </style>

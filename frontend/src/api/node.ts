@@ -259,6 +259,22 @@ export async function getTime(
 }
 
 /**
+ * 操作指定服务（启动/停止/重启）
+ * @param node 节点名称
+ * @param service 服务名称
+ * @param action 操作类型 (start|stop|restart)
+ * @param options 查询选项
+ */
+export async function actionService(
+  node: string,
+  service: string,
+  action: string,
+  options?: QueryOptions,
+): Promise<string> {
+  return post<string>(`/pve/nodes/${node}/services/${service}/${action}`, undefined, options)
+}
+
+/**
  * 重启指定服务
  * @param node 节点名称
  * @param service 服务名称
@@ -269,7 +285,7 @@ export async function restartService(
   service: string,
   options?: QueryOptions,
 ): Promise<string> {
-  return post<string>(`/pve/nodes/${node}/services/${service}/restart`, undefined, options)
+  return actionService(node, service, 'restart', options)
 }
 
 /**
@@ -283,7 +299,7 @@ export async function startService(
   service: string,
   options?: QueryOptions,
 ): Promise<string> {
-  return post<string>(`/pve/nodes/${node}/services/${service}/start`, undefined, options)
+  return actionService(node, service, 'start', options)
 }
 
 /**
@@ -297,7 +313,7 @@ export async function stopService(
   service: string,
   options?: QueryOptions,
 ): Promise<string> {
-  return post<string>(`/pve/nodes/${node}/services/${service}/stop`, undefined, options)
+  return actionService(node, service, 'stop', options)
 }
 
 // ============================================================

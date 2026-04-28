@@ -168,6 +168,7 @@ import BatchOperationBar from '@/components/batch/BatchOperationBar.vue'
 import LXCCreateWizard from '@/components/lxc/LXCCreateWizard.vue'
 import { useBatchStore } from '@/stores/batch'
 import { fetchLXCList, startLXC, stopLXC, rebootLXC } from '@/api/lxc'
+import { getClusterResources } from '@/api/cluster'
 import { formatBytes, formatUptime } from '@/utils/format'
 import type { LXCVM } from '@/api/types'
 
@@ -190,11 +191,14 @@ const showCreateWizard = ref(false)
 async function loadCTList() {
   loading.value = true
   try {
-    const nodes = new Set(ctList.value.map(v => v.node))
-    if (nodes.size === 0) nodes.add('pve-node-01')
+    const resources = await getClusterResources()
+    const nodeNames = resources
+      .filter(r => r.type === 'node')
+      .map(r => r.node || r.name || r.id)
+      .filter(Boolean)
 
     const allVMs: LXCVM[] = []
-    for (const node of nodes) {
+    for (const node of nodeNames) {
       try {
         const vms = await fetchLXCList(node)
         allVMs.push(...vms)
@@ -202,7 +206,7 @@ async function loadCTList() {
         console.warn(`获取节点 ${node} 容器列表失败:`, e)
       }
     }
-    ctList.value = allVMs.length > 0 ? allVMs : ctList.value
+    ctList.value = allVMs
   } catch (error) {
     console.error('获取容器列表失败:', error)
   } finally {

@@ -73,10 +73,17 @@ func setupRoutes(
 			cluster.GET("/tasks", proxyHandler.GetClusterTasks)
 			cluster.GET("/nextid", proxyHandler.GetNextID)
 			cluster.GET("/ha", proxyHandler.GetHAConfig)
+			cluster.GET("/ha/groups", proxyHandler.GetHAGroups)
+			cluster.GET("/ha/resources", proxyHandler.GetHAResources)
 			cluster.GET("/sdn/zones", proxyHandler.GetSDNZones)
 			cluster.GET("/sdn/vnets", proxyHandler.GetSDNVNETs)
 			cluster.GET("/pools", proxyHandler.GetPoolList)
+			cluster.POST("/pools", proxyHandler.CreatePool)
 			cluster.GET("/pools/:poolid", proxyHandler.GetPool)
+			cluster.GET("/storage", proxyHandler.GetClusterStorage)
+			cluster.GET("/config", proxyHandler.GetClusterConfig)
+			cluster.GET("/log", proxyHandler.GetClusterLog)
+			cluster.GET("/replication", proxyHandler.GetReplicationJobs)
 		}
 
 		// 节点操作
@@ -148,6 +155,7 @@ func setupRoutes(
 			lxc.POST("/:vmid/migrate", proxyHandler.MigrateLXC)
 			lxc.GET("/:vmid/rrd", proxyHandler.GetLXCRRD)
 			lxc.GET("/:vmid/pending", proxyHandler.GetLXCPending)
+			lxc.POST("/:vmid/vncproxy", proxyHandler.LXCVNCProxy)
 		}
 
 		// 访问控制
@@ -155,12 +163,23 @@ func setupRoutes(
 		{
 			access.GET("/users", proxyHandler.GetUsers)
 			access.POST("/users", proxyHandler.CreateUser)
+			access.GET("/users/:userid", proxyHandler.GetUser)
+			access.POST("/users/:userid", proxyHandler.UpdateUser)
 			access.DELETE("/users/:userid", proxyHandler.DeleteUser)
+			access.POST("/users/:userid/password", proxyHandler.UpdateUserPassword)
 			access.GET("/groups", proxyHandler.GetGroups)
+			access.POST("/groups", proxyHandler.CreateGroup)
+			access.GET("/groups/:groupid", proxyHandler.GetGroup)
+			access.POST("/groups/:groupid", proxyHandler.UpdateGroup)
+			access.DELETE("/groups/:groupid", proxyHandler.DeleteGroup)
 			access.GET("/roles", proxyHandler.GetRoles)
+			access.POST("/roles", proxyHandler.CreateRole)
+			access.POST("/roles/:roleid", proxyHandler.UpdateRole)
+			access.DELETE("/roles/:roleid", proxyHandler.DeleteRole)
 			access.GET("/acl", proxyHandler.GetACLs)
 			access.POST("/acl", proxyHandler.SetACL)
 			access.GET("/domains", proxyHandler.GetDomains)
+			access.GET("/domains/:realm", proxyHandler.GetDomain)
 		}
 
 		// WebSocket VNC

@@ -260,6 +260,7 @@ import {
 import type { StorageItem } from '@/types/storage'
 import { StorageBackendTypeLabel, StorageContentTypeLabel } from '@/types/storage'
 import { getClusterStorages, deleteStorage } from '@/api/storage'
+import { getClusterResources } from '@/api/cluster'
 import { formatBytes } from '@/utils/format'
 import CreateStorageDialog from '@/components/storage/CreateStorageDialog.vue'
 
@@ -399,8 +400,75 @@ function getProgressColor(usage: number): string {
 async function fetchStorages(): Promise<void> {
   loading.value = true
   try {
-    const response = await getClusterStorages()
-    storageList.value = response.data || []
+    const resources = await getClusterResources().catch(() => [])
+    const storageResources = resources.filter(r => r.type === 'storage')
+
+    let clusterStorages: any[] = []
+    try {
+      const raw = await getClusterStorages()
+      clusterStorages = Array.isArray(raw) ? raw : (raw as any)?.data || []
+    } catch {
+      clusterStorages = []
+    }
+
+    if (clusterStorages.length === 0 && storageResources.length > 0) {
+      const nodeMap = new Map<string, Set<string>>()
+      for (const r of storageResources) {
+        const node = r.node || 'unknown'
+        const storage = r.storage || r.id || ''
+        if (!nodeMap.has(node)) nodeMap.set(node, new Set())
+        nodeMap.get(node)!.add(storage)
+      }
+      const seen = new Set<string>()
+      for (const r of storageResources) {
+        const key = `${r.node}-${r.storage || r.id}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        clusterStorages.push({
+          storage: r.storage || r.id,
+          node: r.node,
+          type: r.plugintype || 'dir',
+          active: r.status === 'online' || r.uptime > 0,
+          content: r.content || '',
+          total: r.maxdisk || 0,
+          used: r.disk || 0,
+          shared: r.shared || false,
+        })
+      }
+    }
+
+    const resourceMap = new Map(
+      storageResources.map(r => [`${r.node}-${r.storage || r.id}`, r]),
+    )
+
+    storageList.value = clusterStorages.map((s: any) => {
+      const key = `${s.node || 'local'}-${s.storage}`
+      const res = resourceMap.get(key)
+      const total = res?.maxdisk || s.total || 0
+      const used = res?.disk || s.used || 0
+      const available = total - used
+      const usage = total > 0 ? Math.round((used / total) * 100) : 0
+      const content = typeof s.content === 'string' ? s.content.split(',') : (s.content || [])
+
+      return {
+        storage: s.storage || s.name || '',
+        node: s.node || 'local',
+        type: s.type || 'dir',
+        status: s.active !== false ? 'active' as const : 'inactive' as const,
+        total,
+        used,
+        available,
+        usage,
+        content,
+        active: s.active !== false,
+        shared: s.shared || false,
+        path: s.path,
+        server: s.server,
+        export: s.export,
+        pool: s.pool,
+        vgname: s.vgname,
+      } as StorageItem
+    })
   } catch (error) {
     console.error('获取存储列表失败:', error)
     ElMessage.error('获取存储列表失败')
