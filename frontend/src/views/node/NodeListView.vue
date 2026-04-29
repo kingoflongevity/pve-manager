@@ -275,7 +275,8 @@ function getNodeTagType(status?: string): 'success' | 'danger' | 'warning' | 'in
 async function fetchNodes(): Promise<void> {
   loading.value = true
   try {
-    const resources = await getClusterResources()
+    const rawResources = await getClusterResources()
+    const resources = Array.isArray(rawResources) ? rawResources : (Array.isArray(rawResources?.data) ? rawResources.data : [])
     nodes.value = resources
   } catch (error) {
     console.error('获取节点数据失败:', error)

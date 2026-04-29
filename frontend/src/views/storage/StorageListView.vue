@@ -400,8 +400,9 @@ function getProgressColor(usage: number): string {
 async function fetchStorages(): Promise<void> {
   loading.value = true
   try {
-    const resources = await getClusterResources().catch(() => [])
-    const storageResources = resources.filter(r => r.type === 'storage')
+    const rawResources = await getClusterResources().catch(() => [])
+    const resources = Array.isArray(rawResources) ? rawResources : (Array.isArray((rawResources as any)?.data) ? (rawResources as any).data : [])
+    const storageResources = resources.filter((r: any) => r.type === 'storage')
 
     let clusterStorages: any[] = []
     try {

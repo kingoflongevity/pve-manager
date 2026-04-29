@@ -19,17 +19,17 @@ func NewStorageService(logger *zap.Logger) *StorageService {
 }
 
 // ListStorage 获取节点上所有存储列表
-func (s *StorageService) ListStorage(ctx context.Context, client *pve.Client, node string) ([]pve.Storage, error) {
+func (s *StorageService) ListStorage(ctx context.Context, client *pve.Client, node string) (interface{}, error) {
 	return client.ListStorage(ctx, node)
 }
 
 // GetStorageStatus 获取指定存储的状态
-func (s *StorageService) GetStorageStatus(ctx context.Context, client *pve.Client, node, storage string) (*pve.StorageStatus, error) {
+func (s *StorageService) GetStorageStatus(ctx context.Context, client *pve.Client, node, storage string) (interface{}, error) {
 	return client.GetStorageStatus(ctx, node, storage)
 }
 
 // GetStorageContent 获取存储内容列表
-func (s *StorageService) GetStorageContent(ctx context.Context, client *pve.Client, node, storage, contentType string) ([]pve.StorageContent, error) {
+func (s *StorageService) GetStorageContent(ctx context.Context, client *pve.Client, node, storage, contentType string) (interface{}, error) {
 	if contentType != "" {
 		return client.GetStorageContentByType(ctx, node, storage, contentType)
 	}

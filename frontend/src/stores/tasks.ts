@@ -61,9 +61,9 @@ export const useTaskStore = defineStore('tasks', () => {
   async function refreshTasks() {
     loading.value = true
     try {
-      const res = await fetchTasks()
-      if (res.data) {
-        tasks.value = res.data.map(normalizeTask)
+      const data = await fetchTasks()
+      if (Array.isArray(data)) {
+        tasks.value = data.map(normalizeTask)
       }
       lastRefresh.value = Date.now()
     } catch (error) {

@@ -479,71 +479,78 @@ func (c *Client) ProxyRequest(ctx context.Context, method, path string, body io.
 
 // GetClusterStatus 获取集群状态
 // 返回集群基本信息
-func (c *Client) GetClusterStatus(ctx context.Context) (*ClusterStatus, error) {
-	var status ClusterStatus
-	if err := c.Get(ctx, "cluster/status", &status); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetClusterStatus(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "cluster/status", &result); err != nil {
 		return nil, err
 	}
-	return &status, nil
+	return result, nil
 }
 
 // GetNodes 获取所有节点列表
 // 返回集群中所有节点的信息
-func (c *Client) GetNodes(ctx context.Context) ([]NodeInfo, error) {
-	var nodes []NodeInfo
-	if err := c.Get(ctx, "nodes", &nodes); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodes(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "nodes", &result); err != nil {
 		return nil, err
 	}
-	return nodes, nil
+	return result, nil
 }
 
 // GetVMs 获取指定节点的虚拟机列表
 // node 为节点名称
-func (c *Client) GetVMs(ctx context.Context, node string) ([]VMInfo, error) {
-	var vms []VMInfo
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetVMs(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/qemu", node)
-	if err := c.Get(ctx, path, &vms); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, err
 	}
-	return vms, nil
+	return result, nil
 }
 
 // GetLXCs 获取指定节点的 LXC 容器列表
 // node 为节点名称
-func (c *Client) GetLXCs(ctx context.Context, node string) ([]LXCInfo, error) {
-	var lxcs []LXCInfo
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetLXCs(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/lxc", node)
-	if err := c.Get(ctx, path, &lxcs); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, err
 	}
-	return lxcs, nil
+	return result, nil
 }
 
 // GetStorages 获取指定节点的存储列表
 // node 为节点名称
-func (c *Client) GetStorages(ctx context.Context, node string) ([]StorageInfo, error) {
-	var storages []StorageInfo
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetStorages(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/storage", node)
-	if err := c.Get(ctx, path, &storages); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, err
 	}
-	return storages, nil
+	return result, nil
 }
 
 // GetTaskStatus 获取任务状态
 // upid 为任务 ID
-func (c *Client) GetTaskStatus(ctx context.Context, node, upid string) (*TaskStatus, error) {
-	var status TaskStatus
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetTaskStatus(ctx context.Context, node, upid string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/tasks/%s/status", node, upid)
-	if err := c.Get(ctx, path, &status); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, err
 	}
-	return &status, nil
+	return result, nil
 }
 
 // WaitForTask 等待任务完成
 // 轮询任务状态直到完成或超时
-func (c *Client) WaitForTask(ctx context.Context, node, upid string, timeout time.Duration) (*TaskStatus, error) {
+// 使用 interface{} 返回值，通过 map 访问 exitcode 字段判断任务是否完成
+func (c *Client) WaitForTask(ctx context.Context, node, upid string, timeout time.Duration) (interface{}, error) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
@@ -555,12 +562,19 @@ func (c *Client) WaitForTask(ctx context.Context, node, upid string, timeout tim
 		case <-timeoutCtx.Done():
 			return nil, fmt.Errorf("等待任务超时: %s", upid)
 		case <-ticker.C:
-			status, err := c.GetTaskStatus(timeoutCtx, node, upid)
+			result, err := c.GetTaskStatus(timeoutCtx, node, upid)
 			if err != nil {
 				return nil, err
 			}
-			if status.ExitCode != "" && status.ExitCode != "task is running" {
-				return status, nil
+			// 通过 map 访问 exitcode 字段判断任务是否完成
+			if m, ok := result.(map[string]interface{}); ok {
+				exitCode, _ := m["exitcode"].(string)
+				if exitCode != "" && exitCode != "task is running" {
+					return result, nil
+				}
+			} else {
+				// 无法解析为 map，直接返回结果
+				return result, nil
 			}
 		}
 	}

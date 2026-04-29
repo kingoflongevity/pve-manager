@@ -101,12 +101,12 @@ func (h *ProxyHandler) GetNextID(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	var result interface{}
-	if err := client.Get(c.Request.Context(), "cluster/nextid", &result); err != nil {
+	data, err := h.clusterService.GetNextID(c.Request.Context(), client)
+	if err != nil {
 		h.serverError(c, "获取下一个 VM ID 失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, data)
 }
 
 func (h *ProxyHandler) GetHAConfig(c *gin.Context) {
@@ -115,12 +115,12 @@ func (h *ProxyHandler) GetHAConfig(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	var result interface{}
-	if err := client.Get(c.Request.Context(), "cluster/ha/status", &result); err != nil {
+	data, err := h.clusterService.GetHAConfig(c.Request.Context(), client)
+	if err != nil {
 		h.serverError(c, "获取 HA 配置失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, data)
 }
 
 func (h *ProxyHandler) GetSDNZones(c *gin.Context) {
@@ -1098,12 +1098,12 @@ func (h *ProxyHandler) GetClusterLog(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	var result interface{}
-	if err := client.Get(c.Request.Context(), "cluster/log", &result); err != nil {
+	data, err := h.clusterService.GetClusterLog(c.Request.Context(), client)
+	if err != nil {
 		h.serverError(c, "获取集群日志失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, data)
 }
 
 // GetReplicationJobs 获取复制任务列表
@@ -1128,12 +1128,12 @@ func (h *ProxyHandler) GetHAGroups(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	var result interface{}
-	if err := client.Get(c.Request.Context(), "cluster/ha/groups", &result); err != nil {
+	data, err := h.clusterService.GetHAGroups(c.Request.Context(), client)
+	if err != nil {
 		h.serverError(c, "获取 HA 组列表失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, data)
 }
 
 // GetHAResources 获取 HA 资源列表
@@ -1143,12 +1143,12 @@ func (h *ProxyHandler) GetHAResources(c *gin.Context) {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	var result interface{}
-	if err := client.Get(c.Request.Context(), "cluster/ha/resources", &result); err != nil {
+	data, err := h.clusterService.GetHAResources(c.Request.Context(), client)
+	if err != nil {
 		h.serverError(c, "获取 HA 资源列表失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, data)
 }
 
 // CreatePool 创建资源池

@@ -9,13 +9,14 @@ import (
 // ListLXC 获取指定节点的 LXC 容器列表
 // node: 节点名称
 // 返回该节点上所有 LXC 容器的信息
-func (c *Client) ListLXC(ctx context.Context, node string) ([]LXCContainer, error) {
-	var containers []LXCContainer
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListLXC(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/lxc", node)
-	if err := c.Get(ctx, path, &containers); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 LXC 列表失败: %w", err)
 	}
-	return containers, nil
+	return result, nil
 }
 
 // GetLXCConfig 获取指定容器的完整配置
@@ -129,13 +130,14 @@ func (c *Client) SetLXCConfig(ctx context.Context, node string, vmid int, config
 // ListLXCSnapshots 获取容器快照列表
 // node: 节点名称, vmid: 容器 ID
 // 返回快照信息列表
-func (c *Client) ListLXCSnapshots(ctx context.Context, node string, vmid int) ([]Snapshot, error) {
-	var snapshots []Snapshot
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListLXCSnapshots(ctx context.Context, node string, vmid int) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/lxc/%d/snapshot", node, vmid)
-	if err := c.Get(ctx, path, &snapshots); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 LXC 快照列表失败: %w", err)
 	}
-	return snapshots, nil
+	return result, nil
 }
 
 // CreateLXCSnapshot 创建容器快照
@@ -194,18 +196,19 @@ func (c *Client) MigrateLXC(ctx context.Context, node string, vmid int, params *
 // GetLXCURRD 获取容器 RRD 性能数据
 // node: 节点名称, vmid: 容器 ID, timeframe: 时间范围 (hour, day, week, month, year)
 // dataset: 数据集 (cpu, memory, network, disk)
-func (c *Client) GetLXCURRD(ctx context.Context, node string, vmid int, timeframe, dataset string) ([]RRDPoint, error) {
-	var data []RRDPoint
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetLXCURRD(ctx context.Context, node string, vmid int, timeframe, dataset string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/lxc/%d/rrd", node, vmid)
 	params := url.Values{}
 	params.Set("timeframe", timeframe)
 	if dataset != "" {
 		params.Set("ds", dataset)
 	}
-	if err := c.GetWithParams(ctx, path, params, &data); err != nil {
+	if err := c.GetWithParams(ctx, path, params, &result); err != nil {
 		return nil, fmt.Errorf("获取 LXC RRD 数据失败: %w", err)
 	}
-	return data, nil
+	return result, nil
 }
 
 // DeleteLXC 删除容器
@@ -223,23 +226,25 @@ func (c *Client) DeleteLXC(ctx context.Context, node string, vmid int) (string, 
 // GetLXCCurrent 获取容器当前状态
 // node: 节点名称, vmid: 容器 ID
 // 返回容器当前运行状态
-func (c *Client) GetLXCCurrent(ctx context.Context, node string, vmid int) (*LXCContainer, error) {
-	var container LXCContainer
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetLXCCurrent(ctx context.Context, node string, vmid int) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/lxc/%d/status/current", node, vmid)
-	if err := c.Get(ctx, path, &container); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 LXC 当前状态失败: %w", err)
 	}
-	return &container, nil
+	return result, nil
 }
 
 // ListLXCPending 获取容器待处理配置
 // node: 节点名称, vmid: 容器 ID
 // 返回等待重启后生效的配置变更
-func (c *Client) ListLXCPending(ctx context.Context, node string, vmid int) ([]PendingConfig, error) {
-	var pending []PendingConfig
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListLXCPending(ctx context.Context, node string, vmid int) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/lxc/%d/pending", node, vmid)
-	if err := c.Get(ctx, path, &pending); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 LXC 待处理配置失败: %w", err)
 	}
-	return pending, nil
+	return result, nil
 }

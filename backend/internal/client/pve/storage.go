@@ -9,53 +9,57 @@ import (
 // ListStorage 获取指定节点的存储列表
 // node: 节点名称
 // 返回该节点上所有存储的信息
-func (c *Client) ListStorage(ctx context.Context, node string) ([]Storage, error) {
-	var storages []Storage
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListStorage(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/storage", node)
-	if err := c.Get(ctx, path, &storages); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取存储列表失败: %w", err)
 	}
-	return storages, nil
+	return result, nil
 }
 
 // GetStorageStatus 获取指定存储的状态
 // node: 节点名称, storage: 存储名称
 // 返回存储的详细状态信息（总容量、已用空间等）
-func (c *Client) GetStorageStatus(ctx context.Context, node, storage string) (*StorageStatus, error) {
-	var status StorageStatus
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetStorageStatus(ctx context.Context, node, storage string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/storage/%s/status", node, storage)
-	if err := c.Get(ctx, path, &status); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取存储状态失败: %w", err)
 	}
-	return &status, nil
+	return result, nil
 }
 
 // GetStorageContent 获取存储内容列表
 // node: 节点名称, storage: 存储名称
 // 返回存储中的所有文件（ISO、VZDump、容器模板等）
-func (c *Client) GetStorageContent(ctx context.Context, node, storage string) ([]StorageContent, error) {
-	var content []StorageContent
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetStorageContent(ctx context.Context, node, storage string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/storage/%s/content", node, storage)
-	if err := c.Get(ctx, path, &content); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取存储内容失败: %w", err)
 	}
-	return content, nil
+	return result, nil
 }
 
 // GetStorageContentByType 按类型获取存储内容
 // node: 节点名称, storage: 存储名称, contentType: 内容类型 (images, iso, vztmpl, backup, snippets)
 // 返回指定类型的内容列表
-func (c *Client) GetStorageContentByType(ctx context.Context, node, storage, contentType string) ([]StorageContent, error) {
-	var content []StorageContent
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetStorageContentByType(ctx context.Context, node, storage, contentType string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/storage/%s/content", node, storage)
 	params := url.Values{}
 	if contentType != "" {
 		params.Set("content", contentType)
 	}
-	if err := c.GetWithParams(ctx, path, params, &content); err != nil {
+	if err := c.GetWithParams(ctx, path, params, &result); err != nil {
 		return nil, fmt.Errorf("获取存储内容失败: %w", err)
 	}
-	return content, nil
+	return result, nil
 }
 
 // CreateStorage 创建存储

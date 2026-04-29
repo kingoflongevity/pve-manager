@@ -192,17 +192,19 @@ const showCreateWizard = ref(false)
 async function loadVMList() {
   loading.value = true
   try {
-    const resources = await getClusterResources()
+    const rawResources = await getClusterResources()
+    const resources = Array.isArray(rawResources) ? rawResources : (Array.isArray(rawResources?.data) ? rawResources.data : [])
     const nodeNames = resources
-      .filter(r => r.type === 'node')
-      .map(r => r.node || r.name || r.id)
+      .filter((r: any) => r.type === 'node')
+      .map((r: any) => r.node || r.name || r.id)
       .filter(Boolean)
 
     const allVMs: QEMUVM[] = []
     for (const node of nodeNames) {
       try {
         const vms = await fetchQEMUList(node)
-        allVMs.push(...vms)
+        const vmList = Array.isArray(vms) ? vms : (Array.isArray((vms as any)?.data) ? (vms as any).data : [])
+        allVMs.push(...vmList)
       } catch (e) {
         console.warn(`获取节点 ${node} 虚拟机列表失败:`, e)
       }

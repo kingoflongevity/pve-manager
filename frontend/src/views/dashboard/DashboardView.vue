@@ -258,8 +258,10 @@ async function loadDashboardData() {
     ])
 
     if (resources.status === 'fulfilled') {
-      clusterResources.value = resources.value
-      const nodes = resources.value.filter(r => r.type === 'node')
+      const rawResources = resources.value
+      const resourceList = Array.isArray(rawResources) ? rawResources : (Array.isArray(rawResources?.data) ? rawResources.data : [])
+      clusterResources.value = resourceList
+      const nodes = resourceList.filter((r: any) => r.type === 'node')
       const totalCpu = nodes.reduce((sum, n) => sum + (n.cpu || 0) * (n.maxcpu || 1) * 100, 0)
       const totalCpuCapacity = nodes.reduce((sum, n) => sum + (n.maxcpu || 1) * 100, 0)
       cpuUsage.value = totalCpuCapacity > 0 ? Math.round((totalCpu / totalCpuCapacity) * 1000) / 10 : 0
@@ -294,8 +296,9 @@ async function loadDashboardData() {
     }
 
     if (tasks.status === 'fulfilled') {
-      const taskList = (tasks.value || []) as NodeTask[]
-      recentTasks.value = taskList.slice(0, 5).map((task) => ({
+      const rawTasks = tasks.value
+      const taskList = Array.isArray(rawTasks) ? rawTasks : (Array.isArray(rawTasks?.data) ? rawTasks.data : [])
+      recentTasks.value = taskList.slice(0, 5).map((task: any) => ({
         id: task.upid || '',
         name: task.type || '未知任务',
         time: formatTaskTime(task.starttime || 0),

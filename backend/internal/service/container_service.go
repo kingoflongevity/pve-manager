@@ -19,7 +19,7 @@ func NewContainerService(logger *zap.Logger) *ContainerService {
 }
 
 // ListContainers 获取节点上所有 LXC 容器列表
-func (s *ContainerService) ListContainers(ctx context.Context, client *pve.Client, node string) ([]pve.LXCContainer, error) {
+func (s *ContainerService) ListContainers(ctx context.Context, client *pve.Client, node string) (interface{}, error) {
 	return client.ListLXC(ctx, node)
 }
 
@@ -64,7 +64,7 @@ func (s *ContainerService) DeleteContainer(ctx context.Context, client *pve.Clie
 }
 
 // GetSnapshots 获取容器快照列表
-func (s *ContainerService) GetSnapshots(ctx context.Context, client *pve.Client, node string, vmid int) ([]pve.Snapshot, error) {
+func (s *ContainerService) GetSnapshots(ctx context.Context, client *pve.Client, node string, vmid int) (interface{}, error) {
 	return client.ListLXCSnapshots(ctx, node, vmid)
 }
 
@@ -89,16 +89,16 @@ func (s *ContainerService) MigrateContainer(ctx context.Context, client *pve.Cli
 }
 
 // GetRRD 获取容器 RRD 性能数据
-func (s *ContainerService) GetRRD(ctx context.Context, client *pve.Client, node string, vmid int, timeframe, dataset string) ([]pve.RRDPoint, error) {
+func (s *ContainerService) GetRRD(ctx context.Context, client *pve.Client, node string, vmid int, timeframe, dataset string) (interface{}, error) {
 	return client.GetLXCURRD(ctx, node, vmid, timeframe, dataset)
 }
 
 // GetPending 获取容器待处理配置
-func (s *ContainerService) GetPending(ctx context.Context, client *pve.Client, node string, vmid int) ([]pve.PendingConfig, error) {
+func (s *ContainerService) GetPending(ctx context.Context, client *pve.Client, node string, vmid int) (interface{}, error) {
 	return client.ListLXCPending(ctx, node, vmid)
 }
 
 // GetCurrent 获取容器当前状态
-func (s *ContainerService) GetCurrent(ctx context.Context, client *pve.Client, node string, vmid int) (*pve.LXCContainer, error) {
+func (s *ContainerService) GetCurrent(ctx context.Context, client *pve.Client, node string, vmid int) (interface{}, error) {
 	return client.GetLXCCurrent(ctx, node, vmid)
 }

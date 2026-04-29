@@ -8,23 +8,25 @@ import (
 
 // ListUsers 获取所有用户列表
 // 返回系统中所有用户的信息
-func (c *Client) ListUsers(ctx context.Context) ([]User, error) {
-	var users []User
-	if err := c.Get(ctx, "access/users", &users); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListUsers(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "access/users", &result); err != nil {
 		return nil, fmt.Errorf("获取用户列表失败: %w", err)
 	}
-	return users, nil
+	return result, nil
 }
 
 // GetUser 获取指定用户的详细信息
 // userid: 用户 ID (格式: username@realm)
-func (c *Client) GetUser(ctx context.Context, userid string) (*User, error) {
-	var user User
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetUser(ctx context.Context, userid string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("access/users/%s", userid)
-	if err := c.Get(ctx, path, &user); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取用户信息失败: %w", err)
 	}
-	return &user, nil
+	return result, nil
 }
 
 // CreateUser 创建新用户
@@ -77,12 +79,13 @@ func (c *Client) SetUserPassword(ctx context.Context, userid, password string) (
 
 // ListGroups 获取所有组列表
 // 返回系统中所有用户组的信息
-func (c *Client) ListGroups(ctx context.Context) ([]Group, error) {
-	var groups []Group
-	if err := c.Get(ctx, "access/groups", &groups); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListGroups(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "access/groups", &result); err != nil {
 		return nil, fmt.Errorf("获取组列表失败: %w", err)
 	}
-	return groups, nil
+	return result, nil
 }
 
 // CreateGroup 创建新组
@@ -122,12 +125,13 @@ func (c *Client) DeleteGroup(ctx context.Context, groupid string) (string, error
 
 // ListRoles 获取所有角色列表
 // 返回系统中所有权限角色的信息
-func (c *Client) ListRoles(ctx context.Context) ([]Role, error) {
-	var roles []Role
-	if err := c.Get(ctx, "access/roles", &roles); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListRoles(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "access/roles", &result); err != nil {
 		return nil, fmt.Errorf("获取角色列表失败: %w", err)
 	}
-	return roles, nil
+	return result, nil
 }
 
 // CreateRole 创建新角色
@@ -168,12 +172,13 @@ func (c *Client) DeleteRole(ctx context.Context, roleid string) (string, error) 
 
 // ListACLs 获取所有访问控制列表
 // 返回系统中所有 ACL 条目
-func (c *Client) ListACLs(ctx context.Context) ([]ACL, error) {
-	var acls []ACL
-	if err := c.Get(ctx, "access/acl", &acls); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListACLs(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "access/acl", &result); err != nil {
 		return nil, fmt.Errorf("获取 ACL 列表失败: %w", err)
 	}
-	return acls, nil
+	return result, nil
 }
 
 // SetACL 设置访问控制
@@ -189,23 +194,25 @@ func (c *Client) SetACL(ctx context.Context, params *ACLParams) (string, error) 
 
 // ListDomains 获取所有认证域列表
 // 返回系统中所有认证域（PVE、PAM、LDAP 等）
-func (c *Client) ListDomains(ctx context.Context) ([]AuthDomain, error) {
-	var domains []AuthDomain
-	if err := c.Get(ctx, "access/domains", &domains); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListDomains(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "access/domains", &result); err != nil {
 		return nil, fmt.Errorf("获取认证域列表失败: %w", err)
 	}
-	return domains, nil
+	return result, nil
 }
 
 // GetDomain 获取指定认证域的详细信息
 // realm: 认证域 ID
-func (c *Client) GetDomain(ctx context.Context, realm string) (*AuthDomain, error) {
-	var domain AuthDomain
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetDomain(ctx context.Context, realm string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("access/domains/%s", realm)
-	if err := c.Get(ctx, path, &domain); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取认证域信息失败: %w", err)
 	}
-	return &domain, nil
+	return result, nil
 }
 
 // CreateDomain 创建认证域
@@ -280,22 +287,24 @@ func (c *Client) DeleteAPIToken(ctx context.Context, userid, tokenid string) (st
 
 // GetPermissions 获取权限树
 // 返回当前用户的权限树（路径 -> 权限列表）
-func (c *Client) GetPermissions(ctx context.Context) (map[string][]string, error) {
-	var perms map[string][]string
-	if err := c.Get(ctx, "access", &perms); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetPermissions(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "access", &result); err != nil {
 		return nil, fmt.Errorf("获取权限树失败: %w", err)
 	}
-	return perms, nil
+	return result, nil
 }
 
 // VerifyTicket 验证 ticket 有效性
 // 返回当前 ticket 关联的用户信息
-func (c *Client) VerifyTicket(ctx context.Context) (*TicketResponse, error) {
-	var ticket TicketResponse
-	if err := c.Get(ctx, "access/ticket", &ticket); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) VerifyTicket(ctx context.Context) (interface{}, error) {
+	var result interface{}
+	if err := c.Get(ctx, "access/ticket", &result); err != nil {
 		return nil, fmt.Errorf("验证 ticket 失败: %w", err)
 	}
-	return &ticket, nil
+	return result, nil
 }
 
 // GetAPIToken 获取 API Token 信息
@@ -312,10 +321,11 @@ func (c *Client) GetAPIToken(ctx context.Context, tokenid string) (map[string]in
 // SearchUsers 搜索用户
 // params: 搜索参数（enable, groups 等）
 // 返回匹配的用户列表
-func (c *Client) SearchUsers(ctx context.Context, params url.Values) ([]User, error) {
-	var users []User
-	if err := c.GetWithParams(ctx, "access/users", params, &users); err != nil {
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) SearchUsers(ctx context.Context, params url.Values) (interface{}, error) {
+	var result interface{}
+	if err := c.GetWithParams(ctx, "access/users", params, &result); err != nil {
 		return nil, fmt.Errorf("搜索用户失败: %w", err)
 	}
-	return users, nil
+	return result, nil
 }

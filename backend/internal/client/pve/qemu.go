@@ -9,13 +9,14 @@ import (
 // ListQEMU 获取指定节点的 QEMU 虚拟机列表
 // node: 节点名称
 // 返回该节点上所有虚拟机的信息
-func (c *Client) ListQEMU(ctx context.Context, node string) ([]QEMUVM, error) {
-	var vms []QEMUVM
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListQEMU(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/qemu", node)
-	if err := c.Get(ctx, path, &vms); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 QEMU 列表失败: %w", err)
 	}
-	return vms, nil
+	return result, nil
 }
 
 // GetQEMUConfig 获取指定虚拟机的完整配置
@@ -142,13 +143,14 @@ func (c *Client) SetQEMUConfig(ctx context.Context, node string, vmid int, confi
 // ListQEMUSnapshots 获取虚拟机快照列表
 // node: 节点名称, vmid: 虚拟机 ID
 // 返回快照信息列表
-func (c *Client) ListQEMUSnapshots(ctx context.Context, node string, vmid int) ([]Snapshot, error) {
-	var snapshots []Snapshot
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) ListQEMUSnapshots(ctx context.Context, node string, vmid int) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/qemu/%d/snapshot", node, vmid)
-	if err := c.Get(ctx, path, &snapshots); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 QEMU 快照列表失败: %w", err)
 	}
-	return snapshots, nil
+	return result, nil
 }
 
 // CreateQEMUSnapshot 创建虚拟机快照
@@ -207,30 +209,32 @@ func (c *Client) MigrateQEMU(ctx context.Context, node string, vmid int, params 
 // GetQEMURRD 获取虚拟机 RRD 性能数据
 // node: 节点名称, vmid: 虚拟机 ID, timeframe: 时间范围 (hour, day, week, month, year)
 // dataset: 数据集 (cpu, memory, network, disk)
-func (c *Client) GetQEMURRD(ctx context.Context, node string, vmid int, timeframe, dataset string) ([]RRDPoint, error) {
-	var data []RRDPoint
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetQEMURRD(ctx context.Context, node string, vmid int, timeframe, dataset string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/qemu/%d/rrd", node, vmid)
 	params := url.Values{}
 	params.Set("timeframe", timeframe)
 	if dataset != "" {
 		params.Set("ds", dataset)
 	}
-	if err := c.GetWithParams(ctx, path, params, &data); err != nil {
+	if err := c.GetWithParams(ctx, path, params, &result); err != nil {
 		return nil, fmt.Errorf("获取 QEMU RRD 数据失败: %w", err)
 	}
-	return data, nil
+	return result, nil
 }
 
 // GetQEMUPending 获取虚拟机待处理配置
 // node: 节点名称, vmid: 虚拟机 ID
 // 返回等待重启后生效的配置变更
-func (c *Client) GetQEMUPending(ctx context.Context, node string, vmid int) ([]PendingConfig, error) {
-	var pending []PendingConfig
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetQEMUPending(ctx context.Context, node string, vmid int) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/qemu/%d/pending", node, vmid)
-	if err := c.Get(ctx, path, &pending); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 QEMU 待处理配置失败: %w", err)
 	}
-	return pending, nil
+	return result, nil
 }
 
 // DeleteQEMU 删除虚拟机
@@ -248,11 +252,12 @@ func (c *Client) DeleteQEMU(ctx context.Context, node string, vmid int) (string,
 // GetQEMUCurrent 获取虚拟机当前状态
 // node: 节点名称, vmid: 虚拟机 ID
 // 返回虚拟机当前运行状态
-func (c *Client) GetQEMUCurrent(ctx context.Context, node string, vmid int) (*QEMUVM, error) {
-	var vm QEMUVM
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetQEMUCurrent(ctx context.Context, node string, vmid int) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/qemu/%d/status/current", node, vmid)
-	if err := c.Get(ctx, path, &vm); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 QEMU 当前状态失败: %w", err)
 	}
-	return &vm, nil
+	return result, nil
 }

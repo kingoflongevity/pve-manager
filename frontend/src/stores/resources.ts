@@ -123,7 +123,8 @@ export const useResourceStore = defineStore('resources', () => {
   async function fetchResources(): Promise<void> {
     loading.value = true
     try {
-      const resources = await getClusterResources()
+      const rawResources = await getClusterResources()
+      const resources = Array.isArray(rawResources) ? rawResources : (Array.isArray(rawResources?.data) ? rawResources.data : [])
       const parsed = parseClusterResources(resources)
       nodes.value = parsed.nodes
       vms.value = parsed.vms

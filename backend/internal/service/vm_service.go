@@ -20,7 +20,7 @@ func NewVMService(logger *zap.Logger) *VMService {
 }
 
 // ListVMs 获取节点上所有 QEMU 虚拟机列表
-func (s *VMService) ListVMs(ctx context.Context, client *pve.Client, node string) ([]pve.QEMUVM, error) {
+func (s *VMService) ListVMs(ctx context.Context, client *pve.Client, node string) (interface{}, error) {
 	return client.ListQEMU(ctx, node)
 }
 
@@ -67,7 +67,7 @@ func (s *VMService) DeleteVM(ctx context.Context, client *pve.Client, node strin
 }
 
 // GetSnapshots 获取虚拟机快照列表
-func (s *VMService) GetSnapshots(ctx context.Context, client *pve.Client, node string, vmid int) ([]pve.Snapshot, error) {
+func (s *VMService) GetSnapshots(ctx context.Context, client *pve.Client, node string, vmid int) (interface{}, error) {
 	return client.ListQEMUSnapshots(ctx, node, vmid)
 }
 
@@ -92,17 +92,17 @@ func (s *VMService) MigrateVM(ctx context.Context, client *pve.Client, node stri
 }
 
 // GetRRD 获取虚拟机 RRD 性能数据
-func (s *VMService) GetRRD(ctx context.Context, client *pve.Client, node string, vmid int, timeframe, dataset string) ([]pve.RRDPoint, error) {
+func (s *VMService) GetRRD(ctx context.Context, client *pve.Client, node string, vmid int, timeframe, dataset string) (interface{}, error) {
 	return client.GetQEMURRD(ctx, node, vmid, timeframe, dataset)
 }
 
 // GetPending 获取虚拟机待处理配置
-func (s *VMService) GetPending(ctx context.Context, client *pve.Client, node string, vmid int) ([]pve.PendingConfig, error) {
+func (s *VMService) GetPending(ctx context.Context, client *pve.Client, node string, vmid int) (interface{}, error) {
 	return client.GetQEMUPending(ctx, node, vmid)
 }
 
 // GetCurrent 获取虚拟机当前状态
-func (s *VMService) GetCurrent(ctx context.Context, client *pve.Client, node string, vmid int) (*pve.QEMUVM, error) {
+func (s *VMService) GetCurrent(ctx context.Context, client *pve.Client, node string, vmid int) (interface{}, error) {
 	return client.GetQEMUCurrent(ctx, node, vmid)
 }
 

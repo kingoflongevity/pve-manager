@@ -352,6 +352,9 @@ export interface NodeTask {
   upid: string
   id?: string
   status?: TaskStatus
+  exitstatus?: string
+  endtime?: number
+  node?: string
 }
 
 /** 任务日志条目 */

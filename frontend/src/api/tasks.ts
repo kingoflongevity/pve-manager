@@ -7,8 +7,9 @@ import type { Task } from './taskTypes'
 
 /**
  * 获取集群所有任务列表
+ * 注意: request.ts 响应拦截器已提取 res.data，此处直接返回数组
  */
-export function fetchTasks(): Promise<{ data: Task[] }> {
+export function fetchTasks(): Promise<Task[]> {
   return get('/pve/cluster/tasks')
 }
 
@@ -16,7 +17,7 @@ export function fetchTasks(): Promise<{ data: Task[] }> {
  * 获取单个任务的日志输出
  * @param upid - 任务 UPID
  */
-export function fetchTaskLog(upid: string): Promise<{ data: string }> {
+export function fetchTaskLog(upid: string): Promise<string[]> {
   return get(`/pve/nodes/${extractNodeFromUPID(upid)}/tasks/${encodeURIComponent(upid)}/log`)
 }
 
@@ -25,7 +26,7 @@ export function fetchTaskLog(upid: string): Promise<{ data: string }> {
  * @param node - 节点名称
  * @param limit - 返回条数限制
  */
-export function fetchNodeTasks(node: string, limit = 50): Promise<{ data: Task[] }> {
+export function fetchNodeTasks(node: string, limit = 50): Promise<Task[]> {
   return get(`/pve/nodes/${node}/tasks`, { limit })
 }
 

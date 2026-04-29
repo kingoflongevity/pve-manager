@@ -9,44 +9,48 @@ import (
 // GetNodeStatus 获取节点状态
 // node: 节点名称
 // 返回节点的详细信息（CPU、内存、磁盘、版本等）
-func (c *Client) GetNodeStatus(ctx context.Context, node string) (*NodeStatus, error) {
-	var status NodeStatus
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeStatus(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/status", node)
-	if err := c.Get(ctx, path, &status); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取节点状态失败: %w", err)
 	}
-	return &status, nil
+	return result, nil
 }
 
 // GetNodeVersion 获取节点 PVE 版本信息
 // node: 节点名称
 // 返回 PVE 版本号、发行版等信息
-func (c *Client) GetNodeVersion(ctx context.Context, node string) (*VersionInfo, error) {
-	var version VersionInfo
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeVersion(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/version", node)
-	if err := c.Get(ctx, path, &version); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取节点版本失败: %w", err)
 	}
-	return &version, nil
+	return result, nil
 }
 
 // GetNodeServices 获取节点服务列表
 // node: 节点名称
 // 返回节点上所有服务的状态信息
-func (c *Client) GetNodeServices(ctx context.Context, node string) ([]Service, error) {
-	var services []Service
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeServices(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/services", node)
-	if err := c.Get(ctx, path, &services); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取节点服务列表失败: %w", err)
 	}
-	return services, nil
+	return result, nil
 }
 
 // GetNodeSyslog 获取节点系统日志
 // node: 节点名称, limit: 日志行数限制, start: 起始行号
 // 返回系统日志条目列表
-func (c *Client) GetNodeSyslog(ctx context.Context, node string, limit, start int) ([]LogEntry, error) {
-	var logs []LogEntry
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeSyslog(ctx context.Context, node string, limit, start int) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/syslog", node)
 	params := url.Values{}
 	if limit > 0 {
@@ -55,58 +59,62 @@ func (c *Client) GetNodeSyslog(ctx context.Context, node string, limit, start in
 	if start > 0 {
 		params.Set("start", fmt.Sprintf("%d", start))
 	}
-	if err := c.GetWithParams(ctx, path, params, &logs); err != nil {
+	if err := c.GetWithParams(ctx, path, params, &result); err != nil {
 		return nil, fmt.Errorf("获取节点系统日志失败: %w", err)
 	}
-	return logs, nil
+	return result, nil
 }
 
 // GetNodeTasks 获取节点任务列表
 // node: 节点名称
 // 返回节点上的任务列表
-func (c *Client) GetNodeTasks(ctx context.Context, node string) ([]Task, error) {
-	var tasks []Task
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeTasks(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/tasks", node)
-	if err := c.Get(ctx, path, &tasks); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取节点任务列表失败: %w", err)
 	}
-	return tasks, nil
+	return result, nil
 }
 
 // GetNodeTaskStatus 获取指定任务状态
 // node: 节点名称, upid: 任务 UPID
 // 返回任务的当前状态和退出码
-func (c *Client) GetNodeTaskStatus(ctx context.Context, node, upid string) (*TaskStatus, error) {
-	var status TaskStatus
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeTaskStatus(ctx context.Context, node, upid string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/tasks/%s/status", node, upid)
-	if err := c.Get(ctx, path, &status); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取任务状态失败: %w", err)
 	}
-	return &status, nil
+	return result, nil
 }
 
 // GetNodeTaskLog 获取指定任务日志
 // node: 节点名称, upid: 任务 UPID
 // 返回任务的日志行列表
-func (c *Client) GetNodeTaskLog(ctx context.Context, node, upid string) ([]TaskLogLine, error) {
-	var logs []TaskLogLine
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeTaskLog(ctx context.Context, node, upid string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/tasks/%s/log", node, upid)
-	if err := c.Get(ctx, path, &logs); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取任务日志失败: %w", err)
 	}
-	return logs, nil
+	return result, nil
 }
 
 // GetNodeNetwork 获取节点网络接口列表
 // node: 节点名称
 // 返回所有网络接口的配置信息
-func (c *Client) GetNodeNetwork(ctx context.Context, node string) ([]NetInterface, error) {
-	var interfaces []NetInterface
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeNetwork(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/network", node)
-	if err := c.Get(ctx, path, &interfaces); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取网络接口列表失败: %w", err)
 	}
-	return interfaces, nil
+	return result, nil
 }
 
 // SetNodeNetworkInterface 配置网络接口
@@ -166,13 +174,14 @@ func (c *Client) ApplyNodeNetworkChanges(ctx context.Context, node string) (stri
 // GetNodeAPTUpdate 获取可更新的软件包列表
 // node: 节点名称
 // 返回待更新的软件包列表
-func (c *Client) GetNodeAPTUpdate(ctx context.Context, node string) ([]PackageUpdate, error) {
-	var updates []PackageUpdate
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeAPTUpdate(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/apt/update", node)
-	if err := c.Get(ctx, path, &updates); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取软件包更新列表失败: %w", err)
 	}
-	return updates, nil
+	return result, nil
 }
 
 // NodeUpdatePackages 更新软件包
@@ -191,13 +200,14 @@ func (c *Client) NodeUpdatePackages(ctx context.Context, node string, packages s
 // GetNodeDNS 获取节点 DNS 配置
 // node: 节点名称
 // 返回 DNS 搜索域和名称服务器配置
-func (c *Client) GetNodeDNS(ctx context.Context, node string) (*DNSConfig, error) {
-	var dns DNSConfig
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeDNS(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/dns", node)
-	if err := c.Get(ctx, path, &dns); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取 DNS 配置失败: %w", err)
 	}
-	return &dns, nil
+	return result, nil
 }
 
 // SetNodeDNS 更新节点 DNS 配置
@@ -215,13 +225,14 @@ func (c *Client) SetNodeDNS(ctx context.Context, node string, config DNSConfig) 
 // GetNodeTime 获取节点时间信息
 // node: 节点名称
 // 返回节点的时区和时间信息
-func (c *Client) GetNodeTime(ctx context.Context, node string) (*TimeInfo, error) {
-	var timeInfo TimeInfo
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeTime(ctx context.Context, node string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/time", node)
-	if err := c.Get(ctx, path, &timeInfo); err != nil {
+	if err := c.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("获取时间信息失败: %w", err)
 	}
-	return &timeInfo, nil
+	return result, nil
 }
 
 // SetNodeTimezone 设置节点时区
@@ -240,18 +251,19 @@ func (c *Client) SetNodeTimezone(ctx context.Context, node, timezone string) (st
 // GetNodeRRD 获取节点 RRD 性能数据
 // node: 节点名称, timeframe: 时间范围 (hour, day, week, month, year)
 // dataset: 数据集 (cpu, memory, network, disk, loadavg)
-func (c *Client) GetNodeRRD(ctx context.Context, node string, timeframe, dataset string) ([]RRDPoint, error) {
-	var data []RRDPoint
+// 使用 interface{} 返回值防止 PVE 9.x 返回意外数据格式时 json.Unmarshal 失败
+func (c *Client) GetNodeRRD(ctx context.Context, node string, timeframe, dataset string) (interface{}, error) {
+	var result interface{}
 	path := fmt.Sprintf("nodes/%s/rrd", node)
 	params := url.Values{}
 	params.Set("timeframe", timeframe)
 	if dataset != "" {
 		params.Set("ds", dataset)
 	}
-	if err := c.GetWithParams(ctx, path, params, &data); err != nil {
+	if err := c.GetWithParams(ctx, path, params, &result); err != nil {
 		return nil, fmt.Errorf("获取节点 RRD 数据失败: %w", err)
 	}
-	return data, nil
+	return result, nil
 }
 
 // GetNodeReport 获取节点诊断报告

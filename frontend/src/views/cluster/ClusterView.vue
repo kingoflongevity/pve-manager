@@ -121,11 +121,12 @@ const filteredNodes = computed(() => {
 async function fetchClusterData() {
   loading.value = true
   try {
-    const resources = await getClusterResources()
-    const nodeResources = resources.filter(r => r.type === 'node')
-    const vmResources = resources.filter(r => r.type === 'qemu' || r.type === 'vm')
-    const lxcResources = resources.filter(r => r.type === 'lxc')
-    const storageResources = resources.filter(r => r.type === 'storage')
+    const rawResources = await getClusterResources()
+    const resources = Array.isArray(rawResources) ? rawResources : (Array.isArray(rawResources?.data) ? rawResources.data : [])
+    const nodeResources = resources.filter((r: any) => r.type === 'node')
+    const vmResources = resources.filter((r: any) => r.type === 'qemu' || r.type === 'vm')
+    const lxcResources = resources.filter((r: any) => r.type === 'lxc')
+    const storageResources = resources.filter((r: any) => r.type === 'storage')
 
     // 将 PVE API 的 ClusterResource 转换为前端 ClusterNode 格式
     nodes.value = nodeResources.map(node => {
