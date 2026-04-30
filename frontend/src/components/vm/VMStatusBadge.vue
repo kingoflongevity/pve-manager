@@ -71,11 +71,11 @@ const statusText = computed(() => statusMap[props.status]?.text || '未知')
 
 // 已停止 - 灰色
 .status-stopped {
-  background: $gray-3;
-  color: $gray-8;
+  background: $color-bg-elevated;
+  color: $color-text-regular;
 
   .status-dot {
-    background: $gray-6;
+    background: $color-text-placeholder;
   }
 }
 

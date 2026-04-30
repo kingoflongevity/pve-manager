@@ -405,7 +405,7 @@ onUnmounted(() => {
 .task-filter {
   padding: $spacing-3 $spacing-6;
   border-bottom: 1px solid $color-border-lighter;
-  background: $gray-2;
+  background: $color-bg-base;
   flex-shrink: 0;
 
   .filter-icon {
@@ -428,9 +428,9 @@ onUnmounted(() => {
     width: 6px;
   }
   &::-webkit-scrollbar-thumb {
-    background: $gray-5;
+    background: $color-text-disabled;
     border-radius: $radius-full;
-    &:hover { background: $gray-6; }
+    &:hover { background: $color-text-placeholder; }
   }
 }
 
@@ -442,7 +442,7 @@ onUnmounted(() => {
   min-height: 200px;
 
   .empty-icon {
-    color: $gray-5;
+    color: $color-text-disabled;
   }
 }
 
@@ -476,7 +476,7 @@ onUnmounted(() => {
     border-left: 3px solid $color-danger;
   }
   &.task-stopped {
-    border-left: 3px solid $gray-5;
+    border-left: 3px solid $color-text-disabled;
   }
 }
 
@@ -500,7 +500,7 @@ onUnmounted(() => {
     color: $color-danger;
   }
   .status-stopped {
-    color: $gray-5;
+    color: $color-text-disabled;
   }
 }
 
@@ -553,7 +553,7 @@ onUnmounted(() => {
   }
 
   .meta-divider {
-    color: $gray-5;
+    color: $color-text-disabled;
   }
 }
 
@@ -564,7 +564,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: $spacing-3 $spacing-6;
   border-top: 1px solid $color-border-lighter;
-  background: $gray-2;
+  background: $color-bg-base;
   flex-shrink: 0;
   font-size: $font-size-xs;
   color: $color-text-secondary;

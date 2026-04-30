@@ -596,7 +596,7 @@ function getTimelineColor(status: BackupJobStatus): string {
     font-family: $font-family-code;
     font-size: $font-size-xs;
     color: $color-text-secondary;
-    background: $gray-3;
+    background: $color-bg-elevated;
     padding: $spacing-1 $spacing-2;
     border-radius: $radius-xs;
   }
@@ -667,7 +667,7 @@ function getTimelineColor(status: BackupJobStatus): string {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  background: $gray-2;
+  background: $color-bg-hover;
   border-radius: $radius-sm;
   padding: $spacing-4;
   gap: $spacing-4;

@@ -236,7 +236,7 @@ function handleAction(command: string) {
     border-top: 3px solid $success-6;
   }
   &.node-status-offline {
-    border-top: 3px solid $gray-5;
+    border-top: 3px solid $color-text-disabled;
     opacity: 0.7;
   }
   &.node-status-warning {

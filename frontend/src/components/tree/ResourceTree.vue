@@ -332,17 +332,17 @@ onUnmounted(() => {
 
 .tree-search {
   padding: $spacing-3;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid $color-border-light;
 
   :deep(.search-input) {
     .el-input__wrapper {
-      background: rgba(255, 255, 255, 0.06);
+      background: $color-bg-hover;
       box-shadow: none;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid $color-border-light;
       border-radius: $radius-sm;
 
       &:hover {
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+        box-shadow: 0 0 0 1px $primary-border inset;
       }
 
       &.is-focus {
@@ -351,21 +351,21 @@ onUnmounted(() => {
     }
 
     .el-input__inner {
-      color: rgba(255, 255, 255, 0.85);
+      color: $color-text-regular;
       font-size: $font-size-sm;
 
       &::placeholder {
-        color: rgba(255, 255, 255, 0.35);
+        color: $color-text-placeholder;
       }
     }
 
     .el-input__prefix {
-      color: rgba(255, 255, 255, 0.45);
+      color: $color-text-placeholder;
     }
 
     .el-input__suffix {
       .el-icon {
-        color: rgba(255, 255, 255, 0.45);
+        color: $color-text-placeholder;
       }
     }
   }
@@ -381,16 +381,16 @@ onUnmounted(() => {
   justify-content: flex-end;
   padding: $spacing-2 $spacing-3;
   gap: $spacing-1;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid $color-border-light;
 
   :deep(.el-button) {
-    color: rgba(255, 255, 255, 0.55);
+    color: $color-text-secondary;
     padding: $spacing-1;
     min-height: 24px;
 
     &:hover {
-      color: rgba(255, 255, 255, 0.85);
-      background: rgba(255, 255, 255, 0.08);
+      color: $color-text-regular;
+      background: $color-bg-hover;
     }
 
     &.is-loading {
@@ -421,7 +421,6 @@ onUnmounted(() => {
   background: transparent;
   padding: 0 $spacing-2;
 
-  // 树节点行
   :deep(.el-tree-node__content) {
     height: 36px;
     border-radius: $radius-sm;
@@ -429,19 +428,17 @@ onUnmounted(() => {
     padding: 0 $spacing-2;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.06);
+      background: $color-bg-hover;
     }
   }
 
-  // 选中状态
   :deep(.el-tree-node.is-current > .el-tree-node__content) {
-    background: rgba($primary-color, 0.25);
-    color: #fff;
+    background: $color-bg-active;
+    color: $color-text-primary;
   }
 
-  // 展开箭头
   :deep(.el-tree-node__expand-icon) {
-    color: rgba(255, 255, 255, 0.45);
+    color: $color-text-placeholder;
     font-size: 12px;
     transition: transform $duration-normal $ease-base;
 
@@ -450,7 +447,6 @@ onUnmounted(() => {
     }
   }
 
-  // 高亮指示条
   :deep(.el-tree-node__content.is-current) {
     &::before {
       content: '';
@@ -481,15 +477,14 @@ onUnmounted(() => {
 
 // 类型图标
 .type-icon {
-  color: rgba(255, 255, 255, 0.65);
+  color: $color-text-secondary;
   flex-shrink: 0;
 }
 
-// 节点名称
 .node-label {
   flex: 1;
   min-width: 0;
-  color: rgba(255, 255, 255, 0.85);
+  color: $color-text-regular;
   font-size: $font-size-sm;
   line-height: $line-height-sm;
   overflow: hidden;
@@ -512,7 +507,7 @@ onUnmounted(() => {
   gap: 3px;
   padding: 1px 5px;
   border-radius: $radius-xs;
-  background: rgba(255, 255, 255, 0.06);
+  background: $color-bg-hover;
   font-size: 10px;
   line-height: 1.2;
 }
@@ -529,7 +524,7 @@ onUnmounted(() => {
   }
 
   &.dot-stopped {
-    background: $gray-6;
+    background: $color-text-placeholder;
   }
 
   &.dot-error {
@@ -542,21 +537,20 @@ onUnmounted(() => {
   }
 
   &.dot-unknown {
-    background: $gray-5;
+    background: $color-text-disabled;
   }
 }
 
 // 徽章数量
 .badge-count {
-  color: rgba(255, 255, 255, 0.7);
+  color: $color-text-secondary;
   font-weight: $font-weight-medium;
 }
 
-// 资源分组计数标签
 .group-count-tag {
   font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.1);
+  color: $color-text-secondary;
+  background: $color-bg-hover;
   padding: 0 5px;
   border-radius: $radius-xs;
   flex-shrink: 0;
@@ -566,11 +560,10 @@ onUnmounted(() => {
   line-height: 18px;
 }
 
-// 资源 ID 标签
 .node-id-tag {
   font-size: $font-size-xs;
-  color: rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.08);
+  color: $color-text-placeholder;
+  background: $color-bg-hover;
   padding: 1px $spacing-2;
   border-radius: $radius-xs;
   flex-shrink: 0;
@@ -591,7 +584,7 @@ onUnmounted(() => {
   }
 
   &.status-stopped {
-    background: $gray-6;
+    background: $color-text-placeholder;
   }
 
   &.status-error {
@@ -620,19 +613,19 @@ onUnmounted(() => {
   justify-content: center;
   gap: $spacing-4;
   padding: $spacing-2 $spacing-3;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid $color-border-light;
+  border-bottom: 1px solid $color-border-light;
 
   .stat-item {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    color: rgba(255, 255, 255, 0.55);
+    color: $color-text-secondary;
     font-size: $font-size-xs;
     font-weight: $font-weight-medium;
 
     .el-icon {
-      color: rgba(255, 255, 255, 0.45);
+      color: $color-text-placeholder;
     }
   }
 }
@@ -643,10 +636,10 @@ onUnmounted(() => {
 
 .tree-footer {
   padding: $spacing-3;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid $color-border-light;
 
   .refresh-time {
-    color: rgba(255, 255, 255, 0.35);
+    color: $color-text-disabled;
     font-size: $font-size-xs;
     line-height: $line-height-xs;
   }

@@ -281,7 +281,7 @@ function toggle() {
     }
 
     .el-input__placeholder {
-      color: $slate-600;
+      color: $color-text-placeholder;
     }
   }
 }
@@ -310,7 +310,7 @@ function toggle() {
   align-items: center;
   justify-content: center;
   border-radius: 0;
-  color: $slate-500;
+  color: $color-text-secondary;
   position: relative;
 
   &::before {
@@ -347,7 +347,7 @@ function toggle() {
   .collapse-btn {
     width: 100%;
     height: 40px;
-    color: $slate-500;
+    color: $color-text-secondary;
     justify-content: center;
     border-radius: 6px;
 

@@ -388,14 +388,14 @@ watch(
   overflow-y: auto;
   border: 1px solid $color-border-light;
   border-radius: $radius-base;
-  background: $gray-2;
+  background: $color-bg-base;
 
   &::-webkit-scrollbar {
     width: 6px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: $slate-600;
+    background: var(--scrollbar-thumb, $slate-600);
     border-radius: $radius-full;
   }
 }
@@ -414,7 +414,7 @@ watch(
   }
 
   &:hover {
-    background: $gray-2;
+    background: $color-bg-hover;
   }
 
   &.status-error {
@@ -517,7 +517,7 @@ watch(
 .error-detail {
   margin-top: $spacing-1;
   padding: $spacing-2;
-  background: $gray-3;
+  background: $color-bg-elevated;
   border-radius: $radius-xs;
   font-size: $font-size-xs;
   color: $color-danger;

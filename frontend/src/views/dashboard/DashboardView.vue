@@ -525,7 +525,7 @@ onMounted(() => {
   transition: $transition-fast;
 
   &:hover {
-    background: $gray-2;
+    background: $color-bg-hover;
   }
 
   .task-info {

@@ -396,7 +396,7 @@ onMounted(() => { loadVMList() })
 .table-card { :deep(.el-card__body) { padding: 0; } }
 
 :deep(.el-table) {
-  .el-table__header th { background: $gray-2; }
+  .el-table__header th { background: $color-bg-base; }
   .el-table__row { cursor: pointer; &:hover { background: $primary-1; } }
 }
 

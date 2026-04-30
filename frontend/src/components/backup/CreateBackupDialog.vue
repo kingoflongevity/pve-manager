@@ -370,7 +370,7 @@ async function handleSubmit() {
   .storage-type {
     font-size: $font-size-xs;
     color: $color-text-secondary;
-    background: $gray-3;
+    background: $color-bg-elevated;
     padding: $spacing-1 $spacing-2;
     border-radius: $radius-xs;
     text-transform: uppercase;

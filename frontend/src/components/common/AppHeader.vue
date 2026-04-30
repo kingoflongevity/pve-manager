@@ -145,7 +145,7 @@ function handleCommand(command: string) {
     }
 
     .breadcrumb-separator {
-      color: $slate-600;
+      color: $color-text-disabled;
     }
 
     .breadcrumb-current {
@@ -162,7 +162,7 @@ function handleCommand(command: string) {
 
   .header-icon-btn {
     padding: $spacing-2;
-    color: $slate-500;
+    color: $color-text-secondary;
     border-radius: $radius-base;
 
     &:hover {
@@ -198,7 +198,7 @@ function handleCommand(command: string) {
       color: #fff;
       font-weight: $font-weight-semibold;
       font-size: $font-size-sm;
-      border: 2px solid rgba(255, 255, 255, 0.1);
+      border: 2px solid $color-border-light;
     }
 
     .user-details {
@@ -212,13 +212,13 @@ function handleCommand(command: string) {
       }
 
       .user-role {
-        color: $slate-500;
+        color: $color-text-secondary;
         font-size: $font-size-xs;
       }
     }
 
     .dropdown-arrow {
-      color: $slate-500;
+      color: $color-text-secondary;
       font-size: $font-size-xs;
       transition: transform $transition-base;
     }

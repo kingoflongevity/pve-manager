@@ -309,7 +309,7 @@ async function simulateApiCall(
   }
 
   .batch-count {
-    color: $gray-1;
+    color: $color-text-primary;
     font-size: $font-size-base;
     white-space: nowrap;
 
@@ -323,7 +323,7 @@ async function simulateApiCall(
     color: $primary-2;
 
     &:hover {
-      color: $gray-1;
+      color: $color-text-primary;
     }
   }
 }
@@ -339,18 +339,18 @@ async function simulateApiCall(
     width: 100%;
     justify-content: center;
     padding-top: $spacing-2;
-    border-top: 1px solid rgba($gray-1, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   :deep(.el-button) {
-    border: 1px solid rgba($gray-1, 0.2);
-    background: rgba($gray-1, 0.1);
-    color: $gray-1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: $color-text-primary;
     transition: $transition-base;
 
     &:hover:not(:disabled) {
-      background: rgba($gray-1, 0.2);
-      border-color: rgba($gray-1, 0.4);
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
     }
 
     &:disabled {
@@ -367,10 +367,10 @@ async function simulateApiCall(
   flex-shrink: 0;
 
   :deep(.el-button) {
-    color: rgba($gray-1, 0.7);
+    color: rgba(255, 255, 255, 0.7);
 
     &:hover {
-      color: $gray-1;
+      color: $color-text-primary;
     }
   }
 }
@@ -380,13 +380,13 @@ async function simulateApiCall(
   align-items: center;
   gap: $spacing-3;
   padding: $spacing-2 $spacing-4;
-  background: rgba($gray-13, 0.15);
+  background: rgba(0, 0, 0, 0.15);
 
   .batch-progress-bar {
     flex: 1;
 
     :deep(.el-progress-bar__outer) {
-      background: rgba($gray-1, 0.1);
+      background: rgba(255, 255, 255, 0.1);
     }
 
     :deep(.el-progress-bar__inner) {
@@ -396,7 +396,7 @@ async function simulateApiCall(
   }
 
   .batch-progress-text {
-    color: rgba($gray-1, 0.8);
+    color: rgba(255, 255, 255, 0.8);
     font-size: $font-size-xs;
     white-space: nowrap;
   }

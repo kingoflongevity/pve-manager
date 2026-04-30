@@ -132,7 +132,7 @@ function handleClick(item: StatusItem) {
   padding: $spacing-3 $spacing-4;
   border-radius: $radius-base;
   transition: $transition-base;
-  background: rgba($slate-800, 0.4);
+  background: $color-bg-elevated;
   border: 1px solid transparent;
   flex: 1;
   min-width: 120px;
@@ -167,11 +167,11 @@ function handleClick(item: StatusItem) {
 
 .status-bar {
   height: 8px;
-  background: $slate-800;
+  background: $color-border-light;
   border-radius: $radius-full;
   overflow: hidden;
   margin-bottom: $spacing-4;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 
   .status-bar-segment {
     height: 100%;

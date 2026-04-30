@@ -473,14 +473,14 @@ onUnmounted(() => {
     border-top: 3px solid $success-6;
   }
   &.node-status-offline {
-    border-top: 3px solid $gray-5;
+    border-top: 3px solid $color-text-disabled;
     opacity: 0.7;
   }
   &.node-status-warning {
     border-top: 3px solid $warning-6;
   }
   &.node-status-unknown {
-    border-top: 3px solid $gray-6;
+    border-top: 3px solid $color-text-placeholder;
   }
 
   :deep(.el-card__header) {

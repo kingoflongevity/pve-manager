@@ -1212,7 +1212,7 @@ onUnmounted(() => {
 
 .log-container {
   flex: 1;
-  background: $gray-11;
+  background: $color-bg-elevated;
   border-radius: $radius-sm;
   padding: $spacing-3;
   overflow-y: auto;
@@ -1245,11 +1245,11 @@ onUnmounted(() => {
   transition: $transition-fast;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: $color-bg-hover;
   }
 
   .log-time {
-    color: $gray-5;
+    color: $color-text-secondary;
     flex-shrink: 0;
     min-width: 130px;
   }
@@ -1261,7 +1261,7 @@ onUnmounted(() => {
   }
 
   .log-message {
-    color: $gray-2;
+    color: $color-text-primary;
     word-break: break-all;
   }
 

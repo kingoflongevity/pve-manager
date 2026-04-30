@@ -132,11 +132,11 @@ const stats = computed<SummaryStat[]>(() => [
   gap: $spacing-3;
   padding: $spacing-3;
   border-radius: $radius-sm;
-  background: $gray-2;
+  background: $color-bg-base;
   transition: $transition-fast;
 
   &:hover {
-    background: $gray-3;
+    background: $color-bg-elevated;
   }
 
   .stat-icon {
