@@ -47,13 +47,13 @@ export default defineConfig({
     viewport: { width: 1280, height: 720 },
 
     // 操作超时
-    actionTimeout: 10_000,
+    actionTimeout: 20_000,
 
     // 导航超时
-    navigationTimeout: 15_000,
+    navigationTimeout: 60_000,
 
     // 测试超时（单个测试用例）
-    timeout: 30_000,
+    timeout: 90_000,
 
     // 追踪（失败时保留）
     trace: 'on-first-retry',

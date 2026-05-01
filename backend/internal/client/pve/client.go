@@ -320,6 +320,14 @@ func (c *Client) Do(ctx context.Context, method, path string, params map[string]
 	// 处理错误响应
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(resp.Body)
+		var errData struct {
+			Errors interface{} `json:"errors"`
+			Data   interface{} `json:"data"`
+		}
+		if json.Unmarshal(respBody, &errData) == nil && errData.Errors != nil {
+			errJSON, _ := json.Marshal(errData.Errors)
+			return nil, fmt.Errorf("请求失败 (HTTP %d): %s", resp.StatusCode, string(errJSON))
+		}
 		return nil, fmt.Errorf("请求失败 (HTTP %d): %s", resp.StatusCode, string(respBody))
 	}
 
@@ -417,6 +425,14 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(resp.Body)
+		var errData struct {
+			Errors interface{} `json:"errors"`
+			Data   interface{} `json:"data"`
+		}
+		if json.Unmarshal(respBody, &errData) == nil && errData.Errors != nil {
+			errJSON, _ := json.Marshal(errData.Errors)
+			return fmt.Errorf("请求失败 (HTTP %d): %s", resp.StatusCode, string(errJSON))
+		}
 		return fmt.Errorf("请求失败 (HTTP %d): %s", resp.StatusCode, string(respBody))
 	}
 

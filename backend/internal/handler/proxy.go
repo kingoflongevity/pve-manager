@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -445,24 +446,23 @@ func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 	node := c.Param("node")
 	timeframe := c.DefaultQuery("timeframe", "hour")
 	dataset := c.Query("ds")
-	if dataset == "" {
-		dataset = c.Query("dataset")
-	}
-	if dataset == "" {
-		dataset = "cpu,mem,disk,net"
-	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	path := fmt.Sprintf("nodes/%s/rrd?timeframe=%s&ds=%s", node, timeframe, dataset)
-	var result interface{}
-	if err := client.Get(c.Request.Context(), path, &result); err != nil {
+	params := map[string]interface{}{
+		"timeframe": timeframe,
+	}
+	if dataset != "" {
+		params["ds"] = dataset
+	}
+	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/rrd", node), params)
+	if err != nil {
 		h.serverError(c, "获取性能数据失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, resp.Data)
 }
 
 // ==================== 存储管理 ====================
@@ -798,24 +798,23 @@ func (h *ProxyHandler) GetQEMURRD(c *gin.Context) {
 	}
 	timeframe := c.DefaultQuery("timeframe", "hour")
 	dataset := c.Query("ds")
-	if dataset == "" {
-		dataset = c.Query("dataset")
-	}
-	if dataset == "" {
-		dataset = "cpu,mem,disk,net"
-	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	path := fmt.Sprintf("nodes/%s/qemu/%d/rrd?timeframe=%s&ds=%s", node, vmid, timeframe, dataset)
-	var result interface{}
-	if err := client.Get(c.Request.Context(), path, &result); err != nil {
+	params := map[string]interface{}{
+		"timeframe": timeframe,
+	}
+	if dataset != "" {
+		params["ds"] = dataset
+	}
+	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/qemu/%d/rrd", node, vmid), params)
+	if err != nil {
 		h.serverError(c, "获取虚拟机性能数据失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, resp.Data)
 }
 
 func (h *ProxyHandler) GetQEMUPending(c *gin.Context) {
@@ -1416,24 +1415,23 @@ func (h *ProxyHandler) GetLXCRRD(c *gin.Context) {
 	vmid, _ := strconv.Atoi(c.Param("vmid"))
 	timeframe := c.DefaultQuery("timeframe", "hour")
 	dataset := c.Query("ds")
-	if dataset == "" {
-		dataset = c.Query("dataset")
-	}
-	if dataset == "" {
-		dataset = "cpu,mem,disk,net"
-	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
 		return
 	}
-	path := fmt.Sprintf("nodes/%s/lxc/%d/rrd?timeframe=%s&ds=%s", node, vmid, timeframe, dataset)
-	var result interface{}
-	if err := client.Get(c.Request.Context(), path, &result); err != nil {
+	params := map[string]interface{}{
+		"timeframe": timeframe,
+	}
+	if dataset != "" {
+		params["ds"] = dataset
+	}
+	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/lxc/%d/rrd", node, vmid), params)
+	if err != nil {
 		h.serverError(c, "获取 LXC RRD 数据失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	h.success(c, resp.Data)
 }
 
 func (h *ProxyHandler) GetLXCPending(c *gin.Context) {
@@ -1702,8 +1700,20 @@ func (h *ProxyHandler) badRequest(c *gin.Context, message string) {
 // serverError 返回服务器错误
 func (h *ProxyHandler) serverError(c *gin.Context, message string) {
 	h.logger.Error("服务错误", zap.String("error", message), zap.String("path", c.Request.URL.Path))
-	c.JSON(http.StatusInternalServerError, gin.H{
-		"code":    500,
+	statusCode := http.StatusInternalServerError
+	errCode := 500
+	if strings.Contains(message, "HTTP 404") || strings.Contains(message, "does not exist") {
+		statusCode = http.StatusNotFound
+		errCode = 404
+	} else if strings.Contains(message, "HTTP 403") || strings.Contains(message, "Permission") {
+		statusCode = http.StatusForbidden
+		errCode = 403
+	} else if strings.Contains(message, "HTTP 401") {
+		statusCode = http.StatusUnauthorized
+		errCode = 401
+	}
+	c.JSON(statusCode, gin.H{
+		"code":    errCode,
 		"message": message,
 	})
 }
