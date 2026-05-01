@@ -1,6 +1,5 @@
 <template>
   <aside :class="['app-sidebar', { collapsed }]">
-    <!-- Logo区域 -->
     <div class="sidebar-logo">
       <el-icon :size="24" class="logo-icon"><Monitor /></el-icon>
       <transition name="fade">
@@ -8,134 +7,38 @@
       </transition>
     </div>
 
-    <!-- 节点选择器 -->
-    <transition name="fade">
-      <div v-show="!collapsed" class="node-selector">
-        <el-select
-          v-model="selectedNode"
-          :placeholder="t('layout.selectNode')"
-          size="small"
-          class="node-select"
-          @change="handleNodeChange"
-        >
-          <el-option
-            v-for="node in savedNodes"
-            :key="node.host"
-            :label="node.name"
-            :value="node.host"
-          />
-        </el-select>
-      </div>
-    </transition>
-
-    <!-- 资源树 -->
-    <transition name="fade">
-      <div v-show="!collapsed" class="resource-tree-wrapper">
-        <ResourceTree />
-      </div>
-    </transition>
-
-    <!-- 折叠状态下的快捷导航 -->
-    <div v-show="collapsed" class="compact-nav">
-      <el-tooltip :content="t('layout.dashboard')" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/') }]"
-          @click="router.push('/')"
-        >
-          <el-icon><DataBoard /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="虚拟机管理" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/qemu') }]"
-          @click="router.push('/qemu')"
-        >
-          <el-icon><Monitor /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="容器管理" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/lxc') }]"
-          @click="router.push('/lxc')"
-        >
-          <el-icon><Box /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="存储管理" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/storage') }]"
-          @click="router.push('/storage')"
-        >
-          <el-icon><FolderOpened /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="集群概览" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/cluster') }]"
-          @click="router.push('/cluster')"
-        >
-          <el-icon><Connection /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="备份管理" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/backup') }]"
-          @click="router.push('/backup')"
-        >
-          <el-icon><Files /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="监控中心" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/monitor') }]"
-          @click="router.push('/monitor')"
-        >
-          <el-icon><Odometer /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="访问管理" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/access') }]"
-          @click="router.push('/access')"
-        >
-          <el-icon><Key /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip content="节点管理" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/nodes') }]"
-          @click="router.push('/nodes')"
-        >
-          <el-icon><Monitor /></el-icon>
-        </el-button>
-      </el-tooltip>
-      <el-tooltip :content="t('layout.settings')" placement="right">
-        <el-button
-          text
-          :class="['compact-nav-item', { active: matchRoute('/settings') }]"
-          @click="router.push('/settings')"
-        >
-          <el-icon><Setting /></el-icon>
-        </el-button>
-      </el-tooltip>
-    </div>
-
-    <!-- 底部操作区 -->
-    <div class="sidebar-footer">
-      <el-button
-        text
-        class="collapse-btn"
-        @click="toggle"
+    <!-- 展开状态：导航菜单 -->
+    <nav v-show="!collapsed" class="sidebar-nav">
+      <div
+        v-for="item in navItems"
+        :key="item.path"
+        :class="['nav-item', { active: matchRoute(item.path) }]"
+        @click="navigateTo(item.path)"
       >
+        <el-icon class="nav-icon"><component :is="item.icon" /></el-icon>
+        <span class="nav-label">{{ item.label }}</span>
+      </div>
+    </nav>
+
+    <!-- 收缩状态：图标导航 -->
+    <nav v-show="collapsed" class="compact-nav">
+      <el-tooltip
+        v-for="item in navItems"
+        :key="item.path"
+        :content="item.label"
+        placement="right"
+      >
+        <div
+          :class="['compact-nav-item', { active: matchRoute(item.path) }]"
+          @click="navigateTo(item.path)"
+        >
+          <el-icon><component :is="item.icon" /></el-icon>
+        </div>
+      </el-tooltip>
+    </nav>
+
+    <div class="sidebar-footer">
+      <el-button text class="collapse-btn" @click="toggle">
         <el-icon>
           <DArrowLeft v-if="!collapsed" />
           <DArrowRight v-else />
@@ -146,11 +49,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/auth'
-import ResourceTree from '@/components/tree/ResourceTree.vue'
 import {
   Monitor,
   DataBoard,
@@ -163,9 +64,16 @@ import {
   Box,
   FolderOpened,
   Connection,
+  OfficeBuilding,
 } from '@element-plus/icons-vue'
 
-const props = defineProps<{
+interface NavItem {
+  path: string
+  label: string
+  icon: Component
+}
+
+defineProps<{
   collapsed: boolean
 }>()
 
@@ -175,7 +83,19 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const { t } = useI18n()
-const authStore = useAuthStore()
+
+const navItems = computed<NavItem[]>(() => [
+  { path: '/', label: t('layout.dashboard'), icon: DataBoard },
+  { path: '/qemu', label: '虚拟机管理', icon: Monitor },
+  { path: '/lxc', label: '容器管理', icon: Box },
+  { path: '/storage', label: '存储管理', icon: FolderOpened },
+  { path: '/nodes', label: '节点管理', icon: OfficeBuilding },
+  { path: '/cluster', label: '集群概览', icon: Connection },
+  { path: '/backup', label: '备份管理', icon: Files },
+  { path: '/monitor', label: '监控中心', icon: Odometer },
+  { path: '/access', label: '访问管理', icon: Key },
+  { path: '/settings', label: t('layout.settings'), icon: Setting },
+])
 
 function matchRoute(path: string): boolean {
   if (path === '/') {
@@ -184,23 +104,11 @@ function matchRoute(path: string): boolean {
   return router.currentRoute.value.path.startsWith(path)
 }
 
-const savedNodes = computed(() => authStore.savedNodes)
-const selectedNode = ref(authStore.currentNode?.host || '')
-
-watch(() => authStore.currentNode?.host, (newHost) => {
-  if (newHost) {
-    selectedNode.value = newHost
-  }
-})
-
-function handleNodeChange(host: string) {
-  const node = savedNodes.value.find((n) => n.host === host)
-  if (node) {
-    authStore.currentNode = node
-  }
+function navigateTo(path: string): void {
+  router.push(path)
 }
 
-function toggle() {
+function toggle(): void {
   emit('toggle')
 }
 </script>
@@ -209,8 +117,8 @@ function toggle() {
 @use '@/assets/styles/variables' as *;
 
 .app-sidebar {
-  width: 280px;
-  min-width: 280px;
+  width: 220px;
+  min-width: 220px;
   height: 100vh;
   background: $color-bg-container;
   display: flex;
@@ -222,10 +130,6 @@ function toggle() {
   &.collapsed {
     width: 64px;
     min-width: 64px;
-
-    .node-select {
-      width: 48px;
-    }
   }
 }
 
@@ -243,6 +147,7 @@ function toggle() {
   white-space: nowrap;
   background: $color-bg-elevated;
   font-family: 'Fira Code', 'Consolas', monospace;
+  flex-shrink: 0;
 
   .logo-icon {
     color: $green-500;
@@ -255,63 +160,99 @@ function toggle() {
   }
 }
 
-.node-selector {
-  padding: 12px;
-  border-bottom: 1px solid $color-border-light;
+// ============================================================
+// 展开状态：导航菜单
+// ============================================================
 
-  :deep(.node-select) {
-    .el-input__wrapper {
-      background: $color-bg-hover;
-      box-shadow: none;
-      border: 1px solid $color-border-light;
-      border-radius: 6px;
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
 
-      &:hover {
-        box-shadow: 0 0 0 1px $primary-border inset;
-      }
+.nav-item {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 20px;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: $color-text-regular;
+  position: relative;
+  white-space: nowrap;
+  user-select: none;
 
-      &.is-focus {
-        box-shadow: 0 0 0 1px $green-500 inset;
-      }
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.2s;
+    border-radius: 0 2px 2px 0;
+  }
+
+  &:hover {
+    color: $color-text-primary;
+    background: $color-bg-hover;
+  }
+
+  &.active {
+    color: $green-500;
+    background: $color-bg-active;
+    font-weight: 500;
+
+    &::before {
+      background: $green-500;
     }
 
-    .el-input__inner {
-      color: $color-text-regular;
-      font-family: 'Fira Code', 'Consolas', monospace;
+    .nav-icon {
+      color: $green-500;
     }
+  }
 
-    .el-input__placeholder {
-      color: $color-text-placeholder;
-    }
+  .nav-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    color: inherit;
+  }
+
+  .nav-label {
+    font-size: 14px;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
-.resource-tree-wrapper {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
+// ============================================================
+// 收缩状态：图标导航
+// ============================================================
 
 .compact-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 16px;
-  gap: 8px;
+  padding-top: 8px;
+  gap: 4px;
 }
 
 .compact-nav-item {
   width: 48px;
-  height: 48px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 0;
   color: $color-text-secondary;
   position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
 
   &::before {
     content: '';
@@ -337,12 +278,21 @@ function toggle() {
       background: $green-500;
     }
   }
+
+  .el-icon {
+    font-size: 18px;
+  }
 }
+
+// ============================================================
+// 底部折叠按钮
+// ============================================================
 
 .sidebar-footer {
   padding: 8px;
   border-top: 1px solid $color-border-light;
   background: $color-bg-elevated;
+  flex-shrink: 0;
 
   .collapse-btn {
     width: 100%;
