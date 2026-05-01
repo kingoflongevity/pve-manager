@@ -203,8 +203,11 @@ async function loadVMList() {
     for (const node of nodeNames) {
       try {
         const vms = await fetchQEMUList(node)
-        const vmList = Array.isArray(vms) ? vms : (Array.isArray((vms as any)?.data) ? (vms as any).data : [])
-        allVMs.push(...vmList)
+        const list = Array.isArray(vms) ? vms : (Array.isArray((vms as any)?.data) ? (vms as any).data : [])
+        for (const vm of list) {
+          vm.node = node
+        }
+        allVMs.push(...list)
       } catch (e) {
         console.warn(`获取节点 ${node} 虚拟机列表失败:`, e)
       }
