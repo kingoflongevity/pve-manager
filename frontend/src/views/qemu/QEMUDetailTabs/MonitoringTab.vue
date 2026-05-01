@@ -89,9 +89,9 @@ async function loadMonitoringData() {
     // 并行获取多种数据集
     const [cpuData, memData, diskData, netData] = await Promise.allSettled([
       getQEMURRD(props.node, props.vmid, tf, 'cpu'),
-      getQEMURRD(props.node, props.vmid, tf, 'memory'),
+      getQEMURRD(props.node, props.vmid, tf, 'mem'),
       getQEMURRD(props.node, props.vmid, tf, 'disk'),
-      getQEMURRD(props.node, props.vmid, tf, 'network'),
+      getQEMURRD(props.node, props.vmid, tf, 'net'),
     ])
 
     if (cpuData.status === 'fulfilled') renderCpuChart(cpuData.value)

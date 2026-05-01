@@ -57,7 +57,6 @@ export const useAuthStore = defineStore('auth', () => {
     realm?: string
   }): Promise<boolean> {
     try {
-      // 调用后端真实登录 API，传递 PVE 连接信息
       const res = await post<{ token: string; expires_in: number }>('/auth/login', {
         host: data.host,
         port: data.port,
@@ -66,7 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
         realm: data.realm || 'pam',
       })
 
-      token.value = res.data.token
+      token.value = res.token
       localStorage.setItem('pve_token', token.value)
 
       currentNode.value = {

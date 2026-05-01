@@ -267,7 +267,48 @@ func (h *ProxyHandler) GetNodeStatus(c *gin.Context) {
 		h.serverError(c, "获取节点状态失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	flattened := flattenNodeStatus(data)
+	flattened["node"] = node
+	h.success(c, flattened)
+}
+
+/**
+ * 将 PVE 9.x 嵌套的节点状态数据展平为前端期望的格式
+ */
+func flattenNodeStatus(data interface{}) map[string]interface{} {
+	raw, ok := data.(map[string]interface{})
+	if !ok {
+		return map[string]interface{}{"raw": data}
+	}
+	result := make(map[string]interface{})
+	for k, v := range raw {
+		result[k] = v
+	}
+	if mem, ok := raw["memory"].(map[string]interface{}); ok {
+		if _, has := result["maxmem"]; !has {
+			result["maxmem"] = mem["total"]
+			result["mem"] = mem["used"]
+		}
+	}
+	if swap, ok := raw["swap"].(map[string]interface{}); ok {
+		if _, has := result["maxswap"]; !has {
+			result["maxswap"] = swap["total"]
+			result["swap"] = swap["used"]
+		}
+	}
+	if cpuinfo, ok := raw["cpuinfo"].(map[string]interface{}); ok {
+		if _, has := result["cpus"]; !has {
+			result["cpus"] = cpuinfo["cpus"]
+			result["maxcpu"] = cpuinfo["cpus"]
+		}
+	}
+	if rootfs, ok := raw["rootfs"].(map[string]interface{}); ok {
+		if _, has := result["maxdisk"]; !has {
+			result["maxdisk"] = rootfs["total"]
+			result["disk"] = rootfs["used"]
+		}
+	}
+	return result
 }
 
 func (h *ProxyHandler) GetNodeVersion(c *gin.Context) {
@@ -445,7 +486,7 @@ func (h *ProxyHandler) GetNodeAPTUpdate(c *gin.Context) {
 func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 	node := c.Param("node")
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.Query("ds")
+	dataset := c.DefaultQuery("ds", "cpu")
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -453,13 +494,11 @@ func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 	}
 	params := map[string]interface{}{
 		"timeframe": timeframe,
-	}
-	if dataset != "" {
-		params["ds"] = dataset
+		"ds":        dataset,
 	}
 	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/rrd", node), params)
 	if err != nil {
-		h.serverError(c, "获取性能数据失败: "+err.Error())
+		h.success(c, []interface{}{})
 		return
 	}
 	h.success(c, resp.Data)
@@ -797,7 +836,7 @@ func (h *ProxyHandler) GetQEMURRD(c *gin.Context) {
 		return
 	}
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.Query("ds")
+	dataset := c.DefaultQuery("ds", "cpu")
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -805,13 +844,11 @@ func (h *ProxyHandler) GetQEMURRD(c *gin.Context) {
 	}
 	params := map[string]interface{}{
 		"timeframe": timeframe,
-	}
-	if dataset != "" {
-		params["ds"] = dataset
+		"ds":        dataset,
 	}
 	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/qemu/%d/rrd", node, vmid), params)
 	if err != nil {
-		h.serverError(c, "获取虚拟机性能数据失败: "+err.Error())
+		h.success(c, []interface{}{})
 		return
 	}
 	h.success(c, resp.Data)
@@ -1414,7 +1451,7 @@ func (h *ProxyHandler) GetLXCRRD(c *gin.Context) {
 	node := c.Param("node")
 	vmid, _ := strconv.Atoi(c.Param("vmid"))
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.Query("ds")
+	dataset := c.DefaultQuery("ds", "cpu")
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -1422,13 +1459,11 @@ func (h *ProxyHandler) GetLXCRRD(c *gin.Context) {
 	}
 	params := map[string]interface{}{
 		"timeframe": timeframe,
-	}
-	if dataset != "" {
-		params["ds"] = dataset
+		"ds":        dataset,
 	}
 	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/lxc/%d/rrd", node, vmid), params)
 	if err != nil {
-		h.serverError(c, "获取 LXC RRD 数据失败: "+err.Error())
+		h.success(c, []interface{}{})
 		return
 	}
 	h.success(c, resp.Data)

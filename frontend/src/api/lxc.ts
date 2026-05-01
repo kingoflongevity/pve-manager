@@ -269,7 +269,7 @@ export async function getLXCRRD(
 ): Promise<RRDDataPoint[]> {
   return get<RRDDataPoint[]>(
     `/pve/nodes/${node}/lxc/${vmid}/rrd`,
-    { timeframe, datasource: dataset },
+    { timeframe, ds: dataset },
     options,
   )
 }

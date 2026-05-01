@@ -375,7 +375,6 @@ func (c *Client) Delete(ctx context.Context, path string, result interface{}) er
 func (c *Client) doRequest(ctx context.Context, method, path string, body interface{}, result interface{}) error {
 	var reqBody io.Reader
 	if body != nil {
-		// 判断是否是 url.Values
 		if formData, ok := body.(url.Values); ok {
 			reqBody = bytes.NewBufferString(formData.Encode())
 		} else {
@@ -385,6 +384,8 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 			}
 			reqBody = bytes.NewReader(jsonBody)
 		}
+	} else if method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete {
+		reqBody = bytes.NewBufferString("")
 	}
 
 	reqURL := fmt.Sprintf("%s/%s", c.baseURL, strings.TrimPrefix(path, "/"))
@@ -409,11 +410,12 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 	}
 	c.mu.RUnlock()
 
-	// 设置 Content-Type（如果不是表单数据）
-	if _, ok := body.(url.Values); !ok {
-		req.Header.Set("Content-Type", "application/json")
-	} else {
+	if _, ok := body.(url.Values); ok {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else if body == nil && (method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete) {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else {
+		req.Header.Set("Content-Type", "application/json")
 	}
 	req.Header.Set("Accept", "application/json")
 

@@ -283,7 +283,7 @@ export async function getQEMURRD(
 ): Promise<RRDDataPoint[]> {
   return get<RRDDataPoint[]>(
     `/pve/nodes/${node}/qemu/${vmid}/rrd`,
-    { timeframe, datasource: dataset },
+    { timeframe, ds: dataset },
     options,
   )
 }

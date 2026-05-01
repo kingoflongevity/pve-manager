@@ -279,14 +279,14 @@ async function loadDashboardData() {
           try {
             const status = await getNodeStatus(nodeName)
             nodeStatus.value = {
-              name: status.node || firstNode.name || '',
-              status: status.status === 'online' ? 'online' : 'offline',
-              statusText: status.status === 'online' ? '在线' : '离线',
+              name: status.node || firstNode.name || nodeName || '',
+              status: firstNode.status === 'online' ? 'online' : 'offline',
+              statusText: firstNode.status === 'online' ? '在线' : '离线',
               pveversion: status.pveversion || '-',
               uptime: status.uptime || 0,
               kversion: status.kversion || '-',
               cpus: status.cpus || status.maxcpu || 0,
-              loadavg: Array.isArray(status.loadavg) ? status.loadavg : [0, 0, 0],
+              loadavg: Array.isArray(status.loadavg) ? status.loadavg.map((v: any) => parseFloat(v) || 0) : [0, 0, 0],
             }
           } catch (err) {
             console.error('获取节点状态失败:', err)

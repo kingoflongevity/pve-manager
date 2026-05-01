@@ -130,8 +130,7 @@ const diskUsage = ref(0)
  * 虚拟机运行状态
  */
 const status = computed(() => {
-  if (config.value.vmid) {
-    // 有配置说明存在，通过 uptime 判断
+  if (Object.keys(config.value).length > 0) {
     if (vmStatus.value.uptime > 0) return 'running'
     return 'stopped'
   }
@@ -161,9 +160,9 @@ const statusType = computed(() => {
     stopped: 'info',
     paused: 'warning',
     suspended: 'warning',
-    unknown: '',
+    unknown: 'info',
   }
-  return map[status.value] || ''
+  return map[status.value] || 'info'
 })
 
 /**

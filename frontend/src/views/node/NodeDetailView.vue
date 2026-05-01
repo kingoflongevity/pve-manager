@@ -35,13 +35,13 @@
                     <span class="card-title">节点信息</span>
                   </template>
                   <el-descriptions :column="1" border size="small">
-                    <el-descriptions-item label="主机名">{{ nodeStatus?.node || '--' }}</el-descriptions-item>
+                    <el-descriptions-item label="主机名">{{ nodeStatus?.node || nodeName || '--' }}</el-descriptions-item>
                     <el-descriptions-item label="PVE 版本">{{ nodeVersion?.version || '--' }}</el-descriptions-item>
                     <el-descriptions-item label="内核版本">{{ nodeStatus?.kversion || '--' }}</el-descriptions-item>
                     <el-descriptions-item label="运行时间">{{ formatUptime(nodeStatus?.uptime || 0) }}</el-descriptions-item>
                     <el-descriptions-item label="CPU 核心数">{{ nodeStatus?.cpus || 0 }} 核</el-descriptions-item>
                     <el-descriptions-item label="系统负载">
-                      {{ nodeStatus?.loadavg?.join(', ') || '--' }}
+                      {{ Array.isArray(nodeStatus?.loadavg) ? nodeStatus.loadavg.map((v: any) => typeof v === 'number' ? v.toFixed(2) : v).join(', ') : '--' }}
                     </el-descriptions-item>
                   </el-descriptions>
                 </el-card>
@@ -494,8 +494,8 @@ const overviewLoading = ref(false)
 
 /** CPU 使用百分比 */
 const cpuPercent = computed(() => {
-  if (!nodeStatus.value || !nodeStatus.value.maxcpu) return 0
-  return Math.round((nodeStatus.value.cpu || 0) / nodeStatus.value.maxcpu * 1000) / 10
+  if (!nodeStatus.value) return 0
+  return Math.round((nodeStatus.value.cpu || 0) * 1000) / 10
 })
 
 /** 内存使用百分比 */
