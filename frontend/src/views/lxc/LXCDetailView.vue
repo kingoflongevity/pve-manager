@@ -106,7 +106,7 @@ import FeaturesTab from './LXCDetailTabs/FeaturesTab.vue'
 import SnapshotsTab from '../qemu/QEMUDetailTabs/SnapshotsTab.vue'
 import BackupTab from '../qemu/QEMUDetailTabs/BackupTab.vue'
 import FirewallTab from '../qemu/QEMUDetailTabs/FirewallTab.vue'
-import MonitoringTab from '../qemu/QEMUDetailTabs/MonitoringTab.vue'
+import MonitoringTab from './LXCDetailTabs/MonitoringTab.vue'
 import TasksTab from '../qemu/QEMUDetailTabs/TasksTab.vue'
 
 const router = useRouter()

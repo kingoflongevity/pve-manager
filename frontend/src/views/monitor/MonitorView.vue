@@ -271,10 +271,10 @@ const clusterResources = ref<ClusterResource[]>([])
 // 时间范围选项
 const timeframes = [
   { label: '1小时', value: 'hour' as const },
-  { label: '6小时', value: 'day' as const },
-  { label: '24小时', value: 'week' as const },
-  { label: '7天', value: 'month' as const },
-  { label: '30天', value: 'year' as const },
+  { label: '1天', value: 'day' as const },
+  { label: '1周', value: 'week' as const },
+  { label: '1月', value: 'month' as const },
+  { label: '1年', value: 'year' as const },
 ]
 
 // 告警规则

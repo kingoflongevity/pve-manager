@@ -93,15 +93,20 @@ const autoRefreshPaused = ref(false)
 function getDefaultSeries(): ChartSeries[] {
   const root = document.documentElement
   const isLight = root.classList.contains('theme-light')
-  
+  const isNode = props.resourceType === 'node'
+
   const defaults: Record<RRDDataSet, ChartSeries[]> = {
     cpu: [
       { name: 'CPU 使用率', dataKey: 'cpu', color: isLight ? '#3B82F6' : '#409EFF', unit: '%' },
     ],
-    mem: [
-      { name: '内存使用', dataKey: 'mem', color: isLight ? '#16A34A' : '#67C23A', unit: 'MB' },
-      { name: '交换空间', dataKey: 'swap', color: isLight ? '#F97316' : '#E6A23C', unit: 'MB' },
-    ],
+    mem: isNode
+      ? [
+          { name: '内存使用', dataKey: 'memused', color: isLight ? '#16A34A' : '#67C23A', unit: 'MB' },
+          { name: '交换空间', dataKey: 'swapused', color: isLight ? '#F97316' : '#E6A23C', unit: 'MB' },
+        ]
+      : [
+          { name: '内存使用', dataKey: 'mem', color: isLight ? '#16A34A' : '#67C23A', unit: 'MB' },
+        ],
     net: [
       { name: '接收', dataKey: 'netin', color: isLight ? '#3B82F6' : '#409EFF', unit: 'B/s' },
       { name: '发送', dataKey: 'netout', color: isLight ? '#16A34A' : '#67C23A', unit: 'B/s' },
@@ -198,9 +203,14 @@ function renderChart(data: RRDDataPoint[]) {
   // 构建每个系列的数据，处理缺失值
   const series = seriesConfig.map(cfg => {
     const chartData = data.map(point => {
-      const val = point[cfg.dataKey]
-      // 缺失数据返回 null，ECharts 会自动断开连接或插值
-      return val !== undefined && val !== null ? Number(val) : null
+      let val = point[cfg.dataKey]
+      if (val !== undefined && val !== null) {
+        val = Number(val)
+        if (cfg.dataKey === 'cpu') {
+          val = val * 100
+        }
+      }
+      return val !== undefined && val !== null ? val : null
     })
     
     return {

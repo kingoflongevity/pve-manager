@@ -486,7 +486,7 @@ func (h *ProxyHandler) GetNodeAPTUpdate(c *gin.Context) {
 func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 	node := c.Param("node")
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.DefaultQuery("ds", "cpu")
+	cf := c.DefaultQuery("cf", "AVERAGE")
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -494,9 +494,9 @@ func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 	}
 	params := map[string]interface{}{
 		"timeframe": timeframe,
-		"ds":        dataset,
+		"cf":        cf,
 	}
-	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/rrd", node), params)
+	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/rrddata", node), params)
 	if err != nil {
 		h.success(c, []interface{}{})
 		return
@@ -836,7 +836,7 @@ func (h *ProxyHandler) GetQEMURRD(c *gin.Context) {
 		return
 	}
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.DefaultQuery("ds", "cpu")
+	cf := c.DefaultQuery("cf", "AVERAGE")
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -844,9 +844,9 @@ func (h *ProxyHandler) GetQEMURRD(c *gin.Context) {
 	}
 	params := map[string]interface{}{
 		"timeframe": timeframe,
-		"ds":        dataset,
+		"cf":        cf,
 	}
-	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/qemu/%d/rrd", node, vmid), params)
+	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/qemu/%d/rrddata", node, vmid), params)
 	if err != nil {
 		h.success(c, []interface{}{})
 		return
@@ -1495,7 +1495,7 @@ func (h *ProxyHandler) GetLXCRRD(c *gin.Context) {
 	node := c.Param("node")
 	vmid, _ := strconv.Atoi(c.Param("vmid"))
 	timeframe := c.DefaultQuery("timeframe", "hour")
-	dataset := c.DefaultQuery("ds", "cpu")
+	cf := c.DefaultQuery("cf", "AVERAGE")
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -1503,9 +1503,9 @@ func (h *ProxyHandler) GetLXCRRD(c *gin.Context) {
 	}
 	params := map[string]interface{}{
 		"timeframe": timeframe,
-		"ds":        dataset,
+		"cf":        cf,
 	}
-	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/lxc/%d/rrd", node, vmid), params)
+	resp, err := client.Do(c.Request.Context(), "GET", fmt.Sprintf("nodes/%s/lxc/%d/rrddata", node, vmid), params)
 	if err != nil {
 		h.success(c, []interface{}{})
 		return

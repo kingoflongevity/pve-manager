@@ -264,12 +264,12 @@ export async function getLXCRRD(
   node: string,
   vmid: number,
   timeframe: string,
-  dataset: string,
+  _dataset?: string,
   options?: QueryOptions,
 ): Promise<RRDDataPoint[]> {
   return get<RRDDataPoint[]>(
     `/pve/nodes/${node}/lxc/${vmid}/rrd`,
-    { timeframe, ds: dataset },
+    { timeframe, cf: 'AVERAGE' },
     options,
   )
 }

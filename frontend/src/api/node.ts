@@ -330,12 +330,12 @@ export async function stopService(
 export async function getNodeRRD(
   node: string,
   timeframe: string,
-  dataset: string,
+  _dataset?: string,
   options?: QueryOptions,
 ): Promise<RRDDataPoint[]> {
   return get<RRDDataPoint[]>(
     `/pve/nodes/${node}/rrd`,
-    { timeframe, ds: dataset },
+    { timeframe, cf: 'AVERAGE' },
     options,
   )
 }

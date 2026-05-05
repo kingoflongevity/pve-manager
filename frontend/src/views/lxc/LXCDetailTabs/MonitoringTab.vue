@@ -16,7 +16,7 @@
         <RRDChart
           :node="node"
           :target="vmid"
-          resource-type="qemu"
+          resource-type="lxc"
           :timeframe="selectedTimeframe"
           dataset="cpu"
           chart-type="line"
@@ -32,7 +32,7 @@
         <RRDChart
           :node="node"
           :target="vmid"
-          resource-type="qemu"
+          resource-type="lxc"
           :timeframe="selectedTimeframe"
           dataset="mem"
           chart-type="area"
@@ -47,7 +47,7 @@
         <RRDChart
           :node="node"
           :target="vmid"
-          resource-type="qemu"
+          resource-type="lxc"
           :timeframe="selectedTimeframe"
           dataset="disk"
           chart-type="bar"
@@ -62,7 +62,7 @@
         <RRDChart
           :node="node"
           :target="vmid"
-          resource-type="qemu"
+          resource-type="lxc"
           :timeframe="selectedTimeframe"
           dataset="net"
           chart-type="area"

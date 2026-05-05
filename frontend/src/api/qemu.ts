@@ -278,12 +278,12 @@ export async function getQEMURRD(
   node: string,
   vmid: number,
   timeframe: string,
-  dataset: string,
+  _dataset?: string,
   options?: QueryOptions,
 ): Promise<RRDDataPoint[]> {
   return get<RRDDataPoint[]>(
     `/pve/nodes/${node}/qemu/${vmid}/rrd`,
-    { timeframe, ds: dataset },
+    { timeframe, cf: 'AVERAGE' },
     options,
   )
 }
