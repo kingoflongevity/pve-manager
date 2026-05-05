@@ -309,7 +309,7 @@ function openDetail(row: LXCVM) {
 }
 
 function handleConsole(row: LXCVM) {
-  ElMessage.info(`${row.name || row.vmid} 控制台开发中`)
+  router.push({ name: 'ConsoleView', params: { node: row.node, vmid: row.vmid.toString(), vmType: 'lxc' } })
 }
 
 function handleSelectionChange(rows: any[]) {

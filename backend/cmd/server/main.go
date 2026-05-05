@@ -53,6 +53,7 @@ func setupRoutes(
 	authHandler *handler.AuthHandler,
 	proxyHandler *handler.ProxyHandler,
 	vncHandler *handler.VNCProxyHandler,
+	termHandler *handler.TermProxyHandler,
 ) {
 	r.Use(handler.CORS())
 
@@ -156,6 +157,7 @@ func setupRoutes(
 			lxc.GET("/:vmid/rrd", proxyHandler.GetLXCRRD)
 			lxc.GET("/:vmid/pending", proxyHandler.GetLXCPending)
 			lxc.POST("/:vmid/vncproxy", proxyHandler.LXCVNCProxy)
+			lxc.POST("/:vmid/termproxy", proxyHandler.LXCTermProxy)
 		}
 
 		// 访问控制
@@ -184,6 +186,9 @@ func setupRoutes(
 
 		// WebSocket VNC
 		r.GET("/api/pve/vnc/websocket", vncHandler.HandleVNC)
+
+		// WebSocket 终端（LXC 容器）
+		r.GET("/api/pve/term/websocket", termHandler.HandleTermProxy)
 
 		// 管理接口
 		admin := api.Group("/admin")
@@ -226,7 +231,8 @@ func main() {
 	proxyHandler := handler.NewProxyHandler(
 		logger, authService, clusterService, vmService, containerService, storageService, nodeService,
 	)
-	vncHandler := handler.NewVNCProxyHandler(authService)
+	vncHandler := handler.NewVNCProxyHandler(authService, logger)
+	termHandler := handler.NewTermProxyHandler(authService, logger)
 
 	// 设置 Gin 模式
 	if appCfg.Debug {
@@ -241,7 +247,7 @@ func main() {
 	r.Use(gin.Logger())
 
 	// 注册路由
-	setupRoutes(r, authHandler, proxyHandler, vncHandler)
+	setupRoutes(r, authHandler, proxyHandler, vncHandler, termHandler)
 
 	// 启动服务器
 	addr := fmt.Sprintf(":%d", appCfg.Port)

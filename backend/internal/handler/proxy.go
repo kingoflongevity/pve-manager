@@ -875,6 +875,8 @@ func (h *ProxyHandler) GetQEMUPending(c *gin.Context) {
 	h.success(c, result)
 }
 
+// VNCProxy 获取 QEMU 虚拟机 VNC 代理票据
+// 同时返回 PVEAuthCookie，用于后续 WebSocket 连接认证
 func (h *ProxyHandler) VNCProxy(c *gin.Context) {
 	node := c.Param("node")
 	vmid, err := strconv.Atoi(c.Param("vmid"))
@@ -892,7 +894,13 @@ func (h *ProxyHandler) VNCProxy(c *gin.Context) {
 		h.serverError(c, "获取 VNC 代理失败: "+err.Error())
 		return
 	}
-	h.success(c, data)
+	// 将 PVEAuthCookie 附加到响应中，供前端 WebSocket 连接使用
+	pveAuthCookie := client.GetTicket()
+	result := map[string]interface{}{
+		"vnc":            data,
+		"PVEAuthCookie":  pveAuthCookie,
+	}
+	h.success(c, result)
 }
 
 // ==================== LXC 容器 ====================
@@ -1421,7 +1429,8 @@ func (h *ProxyHandler) GetDomain(c *gin.Context) {
 	h.success(c, data)
 }
 
-// LXCVNCProxy 获取 LXC 容器 VNC 代理
+// LXCVNCProxy 获取 LXC 容器 VNC 代理票据
+// 同时返回 PVEAuthCookie，用于后续 WebSocket 连接认证
 func (h *ProxyHandler) LXCVNCProxy(c *gin.Context) {
 	node := c.Param("node")
 	vmid, err := strconv.Atoi(c.Param("vmid"))
@@ -1440,7 +1449,41 @@ func (h *ProxyHandler) LXCVNCProxy(c *gin.Context) {
 		h.serverError(c, "获取 LXC VNC 代理失败: "+err.Error())
 		return
 	}
-	h.success(c, result)
+	pveAuthCookie := client.GetTicket()
+	response := map[string]interface{}{
+		"vnc":           result,
+		"PVEAuthCookie": pveAuthCookie,
+	}
+	h.success(c, response)
+}
+
+// LXCTermProxy 获取 LXC 容器终端代理票据
+// LXC 容器使用 termproxy 而非 vncproxy，通过 xterm.js 终端连接
+// 同时返回 PVEAuthCookie，用于后续 WebSocket 连接认证
+func (h *ProxyHandler) LXCTermProxy(c *gin.Context) {
+	node := c.Param("node")
+	vmid, err := strconv.Atoi(c.Param("vmid"))
+	if err != nil {
+		h.badRequest(c, "容器 ID 格式错误")
+		return
+	}
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+	var result interface{}
+	path := fmt.Sprintf("nodes/%s/lxc/%d/termproxy", node, vmid)
+	if err := client.Post(c.Request.Context(), path, nil, &result); err != nil {
+		h.serverError(c, "获取 LXC 终端代理失败: "+err.Error())
+		return
+	}
+	pveAuthCookie := client.GetTicket()
+	response := map[string]interface{}{
+		"term":          result,
+		"PVEAuthCookie": pveAuthCookie,
+	}
+	h.success(c, response)
 }
 
 // ==================== 辅助方法 ====================

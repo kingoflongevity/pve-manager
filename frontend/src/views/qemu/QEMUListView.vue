@@ -347,7 +347,7 @@ function openDetail(row: QEMUVM) {
 }
 
 function openConsole(row: QEMUVM) {
-  router.push({ name: 'QEMUConsole', params: { node: row.node, vmid: row.vmid.toString() } })
+  router.push({ name: 'ConsoleView', params: { node: row.node, vmid: row.vmid.toString(), vmType: 'qemu' } })
 }
 
 function handleSelectionChange(rows: any[]) {

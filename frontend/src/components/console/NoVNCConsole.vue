@@ -82,9 +82,9 @@ const statusText = computed(() => {
  * 构建 WebSocket URL
  * 通过后端代理转发 WebSocket 连接到 PVE
  * JWT token 通过 URL 参数传递（因为 noVNC 不支持自定义 WebSocket 头）
- * VNC 端口和票据也通过 URL 参数传递给后端代理
+ * VNC 端口、票据、节点、VM ID、类型和 PVEAuthCookie 也通过 URL 参数传递给后端代理
  */
-function buildWebSocketUrl(vncPort: number, vncTicket: string): string {
+function buildWebSocketUrl(vncPort: number, vncTicket: string, pveAuthCookie: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = window.location.host
   const token = localStorage.getItem('pve_token') || ''
@@ -93,6 +93,10 @@ function buildWebSocketUrl(vncPort: number, vncTicket: string): string {
     vncport: String(vncPort),
     vncticket: vncTicket,
     token: token,
+    node: props.node,
+    vmid: String(props.vmid),
+    vmtype: props.vmType,
+    pveauthcookie: pveAuthCookie,
   })
 
   return `${protocol}//${host}/api/pve/vnc/websocket?${params.toString()}`
@@ -101,8 +105,8 @@ function buildWebSocketUrl(vncPort: number, vncTicket: string): string {
 /**
  * 连接 VNC 控制台
  * 流程：
- * 1. 调用后端 API 获取 VNC 票据（port + ticket）
- * 2. 构建 WebSocket URL 并附加 JWT token、VNC 端口和票据
+ * 1. 调用后端 API 获取 VNC 票据（port + ticket）和 PVEAuthCookie
+ * 2. 构建 WebSocket URL 并附加 JWT token、VNC 端口、票据和 PVEAuthCookie
  * 3. 初始化 RFB (Remote Frame Buffer) 连接
  */
 async function connect() {
@@ -118,24 +122,29 @@ async function connect() {
   errorMessage.value = ''
 
   try {
-    // 获取 VNC 代理票据
-    let ticket: { port: number; ticket: string }
+    // 获取 VNC 代理票据（包含 PVEAuthCookie）
+    let proxyResponse: { vnc: { port: number; ticket: string }; PVEAuthCookie: string }
     if (props.vmType === 'qemu') {
-      ticket = await getQEMUVNCTicket(props.node, props.vmid)
+      proxyResponse = await getQEMUVNCTicket(props.node, props.vmid)
     } else {
-      ticket = await getLXCVNCTicket(props.node, props.vmid)
+      proxyResponse = await getLXCVNCTicket(props.node, props.vmid)
     }
 
-    if (!ticket.ticket || !ticket.port) {
+    const vncData = proxyResponse.vnc
+    if (!vncData.ticket || !vncData.port) {
       throw new Error('无效的 VNC 票据')
     }
 
+    if (!proxyResponse.PVEAuthCookie) {
+      throw new Error('缺少 PVEAuthCookie')
+    }
+
     // 构建 WebSocket URL（通过后端代理转发到 PVE VNC WebSocket）
-    const wsUrl = buildWebSocketUrl(ticket.port, ticket.ticket)
+    const wsUrl = buildWebSocketUrl(vncData.port, vncData.ticket, proxyResponse.PVEAuthCookie)
 
     // 初始化 noVNC RFB 连接
     rfbInstance = new RFB(screenContainer.value, wsUrl, {
-      credentials: { password: ticket.ticket },
+      credentials: { password: vncData.ticket },
       clipViewport: false,
       viewOnly: false,
       dragViewport: false,

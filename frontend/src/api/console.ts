@@ -16,6 +16,32 @@ export interface VNCTicketResponse {
   upid: string
 }
 
+/** VNC 代理完整响应（包含 PVEAuthCookie） */
+export interface VNCProxyResponse {
+  /** VNC 票据信息 */
+  vnc: VNCTicketResponse
+  /** PVE 认证 Cookie，用于 WebSocket 连接认证 */
+  PVEAuthCookie: string
+}
+
+/** 终端代理票据响应 */
+export interface TermTicketResponse {
+  /** 终端连接端口 */
+  port: number
+  /** 终端连接票据 */
+  ticket: string
+  /** PVE 任务 ID */
+  upid: string
+}
+
+/** 终端代理完整响应（包含 PVEAuthCookie） */
+export interface TermProxyResponse {
+  /** 终端票据信息 */
+  term: TermTicketResponse
+  /** PVE 认证 Cookie，用于 WebSocket 连接认证 */
+  PVEAuthCookie: string
+}
+
 /** SPICE 代理响应 */
 export interface SPICEProxyResponse {
   /** SPICE 代理 URL */
@@ -27,16 +53,17 @@ export interface SPICEProxyResponse {
 /**
  * 获取 QEMU 虚拟机的 VNC 代理票据
  * 用于 noVNC WebSocket 连接前的身份验证
+ * 响应包含 PVEAuthCookie，用于 WebSocket 连接认证
  *
  * @param node 节点名称
  * @param vmid 虚拟机 ID
- * @returns VNC 票据信息
+ * @returns VNC 代理完整响应（包含 PVEAuthCookie）
  */
 export async function getQEMUVNCTicket(
   node: string,
   vmid: number,
-): Promise<VNCTicketResponse> {
-  return post<VNCTicketResponse>(
+): Promise<VNCProxyResponse> {
+  return post<VNCProxyResponse>(
     `/pve/nodes/${node}/qemu/${vmid}/vncproxy`,
     { websocket: 1 },
   )
@@ -44,18 +71,38 @@ export async function getQEMUVNCTicket(
 
 /**
  * 获取 LXC 容器的 VNC 代理票据
+ * 响应包含 PVEAuthCookie，用于 WebSocket 连接认证
  *
  * @param node 节点名称
  * @param vmid 容器 ID
- * @returns VNC 票据信息
+ * @returns VNC 代理完整响应（包含 PVEAuthCookie）
  */
 export async function getLXCVNCTicket(
   node: string,
   vmid: number,
-): Promise<VNCTicketResponse> {
-  return post<VNCTicketResponse>(
+): Promise<VNCProxyResponse> {
+  return post<VNCProxyResponse>(
     `/pve/nodes/${node}/lxc/${vmid}/vncproxy`,
     { websocket: 1 },
+  )
+}
+
+/**
+ * 获取 LXC 容器的终端代理票据
+ * LXC 容器使用 termproxy 而非 vncproxy，通过 xterm.js 终端连接
+ * 响应包含 PVEAuthCookie，用于 WebSocket 连接认证
+ *
+ * @param node 节点名称
+ * @param vmid 容器 ID
+ * @returns 终端代理完整响应（包含 PVEAuthCookie）
+ */
+export async function getLXCTermTicket(
+  node: string,
+  vmid: number,
+): Promise<TermProxyResponse> {
+  return post<TermProxyResponse>(
+    `/pve/nodes/${node}/lxc/${vmid}/termproxy`,
+    {},
   )
 }
 
