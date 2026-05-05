@@ -85,8 +85,8 @@ const statusText = computed(() => {
 })
 
 const statusType = computed(() => {
-  const map: Record<string, string> = { running: 'success', stopped: 'info', frozen: 'warning', unknown: '' }
-  return map[props.status] || ''
+  const map: Record<string, string> = { running: 'success', stopped: 'info', frozen: 'warning', unknown: 'info' }
+  return map[props.status] || 'info'
 })
 </script>
 

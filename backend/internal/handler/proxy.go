@@ -1098,6 +1098,7 @@ func (h *ProxyHandler) DeleteLXCSnapshot(c *gin.Context) {
 // ==================== 集群管理（扩展方法） ====================
 
 // GetClusterStorage 获取集群级存储列表
+// PVE 9.x 不支持 GET /cluster/storage，改用 GET /cluster/resources?type=storage
 func (h *ProxyHandler) GetClusterStorage(c *gin.Context) {
 	client, err := h.buildClient(c)
 	if err != nil {
@@ -1105,7 +1106,7 @@ func (h *ProxyHandler) GetClusterStorage(c *gin.Context) {
 		return
 	}
 	var result interface{}
-	if err := client.Get(c.Request.Context(), "cluster/storage", &result); err != nil {
+	if err := client.Get(c.Request.Context(), "cluster/resources?type=storage", &result); err != nil {
 		h.serverError(c, "获取集群存储列表失败: "+err.Error())
 		return
 	}

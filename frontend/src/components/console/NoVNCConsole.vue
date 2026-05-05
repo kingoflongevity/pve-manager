@@ -82,21 +82,27 @@ const statusText = computed(() => {
  * 构建 WebSocket URL
  * 通过后端代理转发 WebSocket 连接到 PVE
  * JWT token 通过 URL 参数传递（因为 noVNC 不支持自定义 WebSocket 头）
+ * VNC 端口和票据也通过 URL 参数传递给后端代理
  */
-function buildWebSocketUrl(): string {
+function buildWebSocketUrl(vncPort: number, vncTicket: string): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = window.location.host
   const token = localStorage.getItem('pve_token') || ''
 
-  // 使用后端 WebSocket 代理端点
-  return `${protocol}//${host}/api/ws/vnc/${props.node}/${props.vmid}/${props.vmType}?token=${encodeURIComponent(token)}`
+  const params = new URLSearchParams({
+    vncport: String(vncPort),
+    vncticket: vncTicket,
+    token: token,
+  })
+
+  return `${protocol}//${host}/api/pve/vnc/websocket?${params.toString()}`
 }
 
 /**
  * 连接 VNC 控制台
  * 流程：
  * 1. 调用后端 API 获取 VNC 票据（port + ticket）
- * 2. 构建 WebSocket URL 并附加 JWT token
+ * 2. 构建 WebSocket URL 并附加 JWT token、VNC 端口和票据
  * 3. 初始化 RFB (Remote Frame Buffer) 连接
  */
 async function connect() {
@@ -124,13 +130,12 @@ async function connect() {
       throw new Error('无效的 VNC 票据')
     }
 
-    // 构建 WebSocket URL
-    const wsUrl = buildWebSocketUrl()
+    // 构建 WebSocket URL（通过后端代理转发到 PVE VNC WebSocket）
+    const wsUrl = buildWebSocketUrl(ticket.port, ticket.ticket)
 
     // 初始化 noVNC RFB 连接
     rfbInstance = new RFB(screenContainer.value, wsUrl, {
       credentials: { password: ticket.ticket },
-      // 启用剪贴板同步
       clipViewport: false,
       viewOnly: false,
       dragViewport: false,

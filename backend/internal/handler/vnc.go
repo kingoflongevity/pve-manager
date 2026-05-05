@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,11 @@ func NewVNCProxyHandler(authService *service.AuthService) *VNCProxyHandler {
 }
 
 // HandleVNC 处理 WebSocket VNC 连接
+// 流程：
+// 1. 从 query 参数获取 JWT token、VNC 端口和票据
+// 2. 使用 JWT 构建 PVE 客户端获取认证 cookie
+// 3. 连接 PVE VNC WebSocket 端点
+// 4. 启动双向代理（浏览器 ↔ PVE）
 func (h *VNCProxyHandler) HandleVNC(c *gin.Context) {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  4096,
@@ -39,36 +46,62 @@ func (h *VNCProxyHandler) HandleVNC(c *gin.Context) {
 	}
 	defer wsConn.Close()
 
-	// 获取 PVE 连接信息
-	host := c.Query("host")
-	port := c.Query("port")
-	vncTicket := c.Query("ticket")
-	vnode := c.Query("vncticket")
+	// 从 query 参数获取 VNC 连接信息
+	vncPort := c.Query("vncport")
+	vncTicket := c.Query("vncticket")
+	tokenString := c.Query("token")
 
-		// 如果没有传入 host/port，尝试从 JWT 中获取
-	if host == "" || port == "" {
+	// 尝试从 Authorization header 获取 token（备用）
+	if tokenString == "" {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader != "" {
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-			pveCtx, pErr := h.authService.GetPVEContext(tokenString)
-			if pErr == nil {
-				host = pveCtx.Host
-				port = fmt.Sprintf("%d", pveCtx.Port)
-			}
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
 		}
 	}
 
-	if host == "" || port == "" || vncTicket == "" {
-		wsConn.WriteMessage(websocket.TextMessage, []byte("缺少必要的连接参数: host, port, ticket"))
+	if tokenString == "" {
+		wsConn.WriteMessage(websocket.TextMessage, []byte("缺少认证 token"))
 		return
 	}
 
-	// 构建 PVE WebSocket URL
-	targetURL := buildPVEWebSocketURL(host, port, vnode, vncTicket)
+	if vncPort == "" || vncTicket == "" {
+		wsConn.WriteMessage(websocket.TextMessage, []byte("缺少 VNC 连接参数: vncport, vncticket"))
+		return
+	}
 
-	// 连接 PVE VNC WebSocket
-	dialer := websocket.Dialer{}
-	pveConn, _, err := dialer.Dial(targetURL, nil)
+	// 使用 JWT 构建 PVE 客户端（同时完成 PVE 认证）
+	pveClient, err := h.authService.BuildPVEClientFromToken(tokenString)
+	if err != nil {
+		wsConn.WriteMessage(websocket.TextMessage, []byte("PVE 认证失败: "+err.Error()))
+		return
+	}
+
+	// 获取 PVE 连接信息
+	pveCtx, err := h.authService.GetPVEContext(tokenString)
+	if err != nil {
+		wsConn.WriteMessage(websocket.TextMessage, []byte("获取 PVE 连接信息失败: "+err.Error()))
+		return
+	}
+
+	// 构建 PVE VNC WebSocket URL
+	targetURL := fmt.Sprintf("wss://%s:%d/api2/json/vncwebsocket?port=%s&vncticket=%s",
+		pveCtx.Host, pveCtx.Port, vncPort, url.QueryEscape(vncTicket))
+
+	// 获取 PVE 认证 ticket 用于 cookie
+	pveTicket := pveClient.GetTicket()
+
+	// 连接 PVE VNC WebSocket（携带认证 cookie）
+	dialer := websocket.Dialer{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // PVE 通常使用自签名证书
+		},
+	}
+	header := http.Header{}
+	if pveTicket != "" {
+		header.Set("Cookie", fmt.Sprintf("PVEAuthCookie=%s", pveTicket))
+	}
+
+	pveConn, _, err := dialer.Dial(targetURL, header)
 	if err != nil {
 		wsConn.WriteMessage(websocket.TextMessage, []byte("连接 PVE VNC 失败: "+err.Error()))
 		return
@@ -82,14 +115,6 @@ func (h *VNCProxyHandler) HandleVNC(c *gin.Context) {
 
 	// 等待任一连接关闭
 	<-done
-}
-
-// buildPVEWebSocketURL 构建 PVE VNC WebSocket URL
-func buildPVEWebSocketURL(host, port, vnode, vncTicket string) string {
-	if vnode == "" {
-		vnode = "1"
-	}
-	return "wss://" + host + ":" + port + "/api2/json/vncwebsocket?port=5900&vncticket=" + vncTicket
 }
 
 // proxyPVEToWS 将 PVE 数据转发到浏览器 WebSocket

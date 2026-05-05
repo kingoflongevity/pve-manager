@@ -661,8 +661,8 @@ export interface ACLSetParams {
 /** RRD 时间范围 */
 export type RRDTimeframe = 'hour' | 'day' | 'week' | 'month' | 'year'
 
-/** RRD 数据集 */
-export type RRDDataSet = 'cpu' | 'memory' | 'network' | 'disk' | 'system'
+/** RRD 数据集（与 PVE API ds 参数一致） */
+export type RRDDataSet = 'cpu' | 'mem' | 'net' | 'disk' | 'system'
 
 /** RRD 数据点 */
 export interface RRDDataPoint {

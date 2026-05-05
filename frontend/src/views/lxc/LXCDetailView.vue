@@ -127,7 +127,7 @@ const diskUsage = ref(0)
  * LXC 容器运行状态
  */
 const status = computed(() => {
-  if (config.value.vmid) {
+  if (Object.keys(config.value).length > 0) {
     if (vmStatus.value.uptime > 0) return 'running'
     return 'stopped'
   }
@@ -149,9 +149,9 @@ const statusType = computed(() => {
     running: 'success',
     stopped: 'info',
     frozen: 'warning',
-    unknown: '',
+    unknown: 'info',
   }
-  return map[status.value] || ''
+  return map[status.value] || 'info'
 })
 
 /**
@@ -177,8 +177,15 @@ function goBack() {
   router.push({ name: 'LXCList' })
 }
 
+/**
+ * 打开 VNC 控制台
+ * 跳转到统一控制台页面，支持 QEMU 和 LXC
+ */
 function openConsole() {
-  ElMessage.info('LXC 控制台功能开发中')
+  router.push({
+    name: 'ConsoleView',
+    params: { node: node.value, vmid: vmid.value.toString(), vmType: 'lxc' },
+  })
 }
 
 /**

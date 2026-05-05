@@ -208,12 +208,13 @@ function goBack() {
 }
 
 /**
- * 打开控制台
+ * 打开 VNC 控制台
+ * 跳转到统一控制台页面，支持 QEMU 和 LXC
  */
 function openConsole() {
   router.push({
-    name: 'QEMUConsole',
-    params: { node: node.value, vmid: vmid.value.toString() },
+    name: 'ConsoleView',
+    params: { node: node.value, vmid: vmid.value.toString(), vmType: 'qemu' },
   })
 }
 

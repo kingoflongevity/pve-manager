@@ -324,7 +324,7 @@ export async function stopService(
  * 获取节点 RRD 性能监控数据
  * @param node 节点名称
  * @param timeframe 时间范围 (hour|day|week|month|year)
- * @param dataset 数据集 (cpu|memory|network|disk|system)
+ * @param dataset 数据集 (cpu|mem|net|disk|system)
  * @param options 查询选项
  */
 export async function getNodeRRD(

@@ -98,11 +98,11 @@ function getDefaultSeries(): ChartSeries[] {
     cpu: [
       { name: 'CPU 使用率', dataKey: 'cpu', color: isLight ? '#3B82F6' : '#409EFF', unit: '%' },
     ],
-    memory: [
+    mem: [
       { name: '内存使用', dataKey: 'mem', color: isLight ? '#16A34A' : '#67C23A', unit: 'MB' },
       { name: '交换空间', dataKey: 'swap', color: isLight ? '#F97316' : '#E6A23C', unit: 'MB' },
     ],
-    network: [
+    net: [
       { name: '接收', dataKey: 'netin', color: isLight ? '#3B82F6' : '#409EFF', unit: 'B/s' },
       { name: '发送', dataKey: 'netout', color: isLight ? '#16A34A' : '#67C23A', unit: 'B/s' },
     ],
