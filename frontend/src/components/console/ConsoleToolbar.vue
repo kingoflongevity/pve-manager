@@ -141,7 +141,7 @@ interface Emits {
   (e: 'clipboard', text: string): void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 /** 是否全屏 */

@@ -50,7 +50,7 @@
           <el-icon><RefreshRight /></el-icon> 重启
         </el-button>
         <el-button type="warning" :disabled="status !== 'running'" plain @click="$emit('action', 'freeze')">
-          <el-icon><Snow /></el-icon> 冻结
+          <el-icon><VideoPause /></el-icon> 冻结
         </el-button>
         <el-button type="success" :disabled="status !== 'frozen'" plain @click="$emit('action', 'unfreeze')">
           <el-icon><CaretRight /></el-icon> 解冻
@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Refresh, VideoPlay, VideoPause, RefreshRight, Snow, CaretRight } from '@element-plus/icons-vue'
+import { Refresh, VideoPlay, VideoPause, RefreshRight, CaretRight } from '@element-plus/icons-vue'
 import ResourceGauge from '@/components/common/ResourceGauge.vue'
 import { formatUptime } from '@/utils/format'
 import type { LXCConfig } from '@/api/types'

@@ -24,17 +24,26 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@novnc/novnc': fileURLToPath(new URL('./node_modules/@novnc/novnc', import.meta.url)),
     },
   },
   server: {
     port: 8088,
     host: true,
-    // 代理配置：开发时将 API 请求转发到 Go 后端
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },
+  },
+  optimizeDeps: {
+    include: ['@novnc/novnc/core/rfb.js'],
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+  build: {
+    target: 'esnext',
   },
 })
