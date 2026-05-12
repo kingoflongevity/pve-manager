@@ -65,6 +65,7 @@ import {
   FolderOpened,
   Connection,
   OfficeBuilding,
+  Grid,
 } from '@element-plus/icons-vue'
 
 interface NavItem {
@@ -93,6 +94,7 @@ const navItems = computed<NavItem[]>(() => [
   { path: '/cluster', label: '集群概览', icon: Connection },
   { path: '/backup', label: '备份管理', icon: Files },
   { path: '/monitor', label: '监控中心', icon: Odometer },
+  { path: '/apps', label: '应用商店', icon: Grid },
   { path: '/access', label: '访问管理', icon: Key },
   { path: '/settings', label: t('layout.settings'), icon: Setting },
 ])

@@ -232,6 +232,7 @@ import {
   getStorageDetail,
   getStorageContents,
   downloadStorageFile,
+  deleteStorageContent,
 } from '@/api/storage'
 import { formatBytes, formatDateTime } from '@/utils/format'
 
@@ -415,9 +416,13 @@ function handleDownload(row: StorageContentItem): void {
 /** 删除内容 */
 async function handleDeleteContent(row: StorageContentItem): Promise<void> {
   try {
-    // 注意：删除内容可能需要通过任务 API 执行
-    // 这里使用通用 deleteStorage 作为示例
-    ElMessage.info('删除功能需要后端支持卷删除接口')
+    const response = await deleteStorageContent(
+      nodeName.value,
+      storageName.value,
+      row.volid,
+    )
+    ElMessage.success(response.message || '删除任务已提交')
+    fetchContents()
   } catch (error) {
     console.error('删除内容失败:', error)
     ElMessage.error('删除内容失败')

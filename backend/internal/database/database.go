@@ -63,6 +63,13 @@ func autoMigrate(db *gorm.DB) error {
 		&model.UserSession{},
 		&model.AuditLog{},
 		&model.SystemConfig{},
+		&model.AIModelConfig{},
+		&model.AIConversation{},
+		&model.AIMessage{},
+		&model.AIReport{},
+		&model.ReportSchedule{},
+		&model.AppTemplate{},
+		&model.AppDeployment{},
 	)
 }
 

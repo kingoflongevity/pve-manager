@@ -597,3 +597,32 @@ func (c *Client) WaitForTask(ctx context.Context, node, upid string, timeout tim
 		}
 	}
 }
+
+// newRequest 创建带认证的 HTTP 请求
+// 自动附加 ticket/CSRF token 认证 headers
+func (c *Client) newRequest(ctx context.Context, method, url string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	// 添加认证 headers
+	c.mu.RLock()
+	if c.ticket != "" {
+		// 判断是 API Token 还是普通 ticket
+		if strings.HasPrefix(c.ticket, "PVEAPIToken=") {
+			req.Header.Set("Authorization", c.ticket)
+		} else {
+			req.Header.Set("Cookie", fmt.Sprintf("PVEAuthCookie=%s", c.ticket))
+		}
+	}
+	// POST/PUT/DELETE 需要 CSRF token
+	if c.csrfToken != "" && (method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete) {
+		req.Header.Set("CSRFPreventionToken", c.csrfToken)
+	}
+	c.mu.RUnlock()
+
+	req.Header.Set("Accept", "application/json")
+
+	return req, nil
+}

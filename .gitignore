@@ -28,3 +28,15 @@ config.yaml
 # Logs
 *.log
 logs/
+
+# Database
+*.db
+*.db-journal
+
+# Screenshots (local only)
+screenshot*.png
+screenshots/
+dogfood-output/
+
+# Data
+backend/data/

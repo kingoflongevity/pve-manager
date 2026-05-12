@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/kingoflongevity/pve-manager/backend/internal/client/pve"
@@ -11,6 +12,8 @@ import (
 	"github.com/kingoflongevity/pve-manager/backend/internal/repository"
 	"go.uber.org/zap"
 )
+
+var devMode = os.Getenv("PVE_DEV_MODE") == "true"
 
 // PVEContext 从 JWT token 中提取的 PVE 连接上下文
 type PVEContext struct {
@@ -65,22 +68,31 @@ func (s *AuthService) Login(ctx context.Context, req *LoginRequest, clientIP, us
 	// 创建 PVE 客户端并验证凭据
 	baseURL := fmt.Sprintf("https://%s:%d/api2/json", req.Host, req.Port)
 	pveCfg := config.PVEConfig{BaseURL: baseURL, VerifyTLS: false}
-	client, err := pve.NewClient(pveCfg, s.logger)
-	if err != nil {
-		s.logger.Error("创建 PVE 客户端失败", zap.Error(err))
-		s.recordAuditLog(req.Username, "login", fmt.Sprintf("%s:%d", req.Host, req.Port), "创建 PVE 客户端失败", clientIP, "failed")
-		return nil, fmt.Errorf("创建 PVE 客户端失败")
-	}
 
-	loginCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
+	if !devMode {
+		client, err := pve.NewClient(pveCfg, s.logger)
+		if err != nil {
+			s.logger.Error("创建 PVE 客户端失败", zap.Error(err))
+			s.recordAuditLog(req.Username, "login", fmt.Sprintf("%s:%d", req.Host, req.Port), "创建 PVE 客户端失败", clientIP, "failed")
+			return nil, fmt.Errorf("创建 PVE 客户端失败")
+		}
 
-	_, err = client.Login(loginCtx, req.Username, req.Password, req.Realm)
-	if err != nil {
-		fullUsername := fmt.Sprintf("%s@%s", req.Username, req.Realm)
-		s.logger.Warn("PVE 登录失败", zap.String("host", req.Host), zap.String("username", fullUsername), zap.Error(err))
-		s.recordAuditLog(req.Username, "login", fmt.Sprintf("%s:%d", req.Host, req.Port), fmt.Sprintf("登录失败: %s", err.Error()), clientIP, "failed")
-		return nil, fmt.Errorf("认证失败：用户 %q 的密码不正确，请检查用户名和密码", fullUsername)
+		loginCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		_, err = client.Login(loginCtx, req.Username, req.Password, req.Realm)
+		if err != nil {
+			fullUsername := fmt.Sprintf("%s@%s", req.Username, req.Realm)
+			s.logger.Warn("PVE 登录失败", zap.String("host", req.Host), zap.String("username", fullUsername), zap.Error(err))
+			s.recordAuditLog(req.Username, "login", fmt.Sprintf("%s:%d", req.Host, req.Port), fmt.Sprintf("登录失败: %s", err.Error()), clientIP, "failed")
+			return nil, fmt.Errorf("认证失败：用户 %q 的密码不正确，请检查用户名和密码", fullUsername)
+		}
+	} else {
+		// 开发模式：跳过 PVE 验证，用户名密码简单校验
+		if req.Username == "" || len(req.Password) < 4 {
+			return nil, fmt.Errorf("认证失败：开发模式下用户名不能为空且密码至少4位")
+		}
+		s.logger.Info("开发模式登录", zap.String("username", req.Username))
 	}
 
 	// 加密密码并生成 JWT

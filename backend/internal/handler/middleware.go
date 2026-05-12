@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -9,10 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
+var devModeAuth = os.Getenv("PVE_DEV_MODE") == "true"
+
 // AuthMiddleware 认证中间件
 // 验证 JWT token 并从 token 中恢复 PVE 连接凭据
+// 开发模式下自动跳过认证
 func AuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if devModeAuth {
+			c.Set("username", "dev_admin")
+			c.Set("user_id", "dev_admin")
+			c.Set("host", "localhost")
+			c.Set("port", 8006)
+			c.Set("realm", "pam")
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "未提供认证令牌"})
@@ -44,6 +58,7 @@ func AuthMiddleware(logger *zap.Logger) gin.HandlerFunc {
 
 		// 将用户信息存入 context，供后续 handler 使用
 		c.Set("username", claims.Username)
+		c.Set("user_id", claims.Username)
 		c.Set("host", claims.Host)
 		c.Set("port", claims.Port)
 		c.Set("realm", claims.Realm)

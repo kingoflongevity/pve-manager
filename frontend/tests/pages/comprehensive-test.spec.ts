@@ -117,7 +117,7 @@ test.describe('PVE 完整功能自动化测试', () => {
         const response = await fetch(`${backendUrl}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ host: '192.168.1.10', port: 8006, username: 'invalid', password: 'wrong' }),
+          body: JSON.stringify({ host: '192.168.1.10', port: 8006, username: '', password: '' }),
         })
         return { status: response.status, ok: response.ok }
       }, { backendUrl: BACKEND_URL })

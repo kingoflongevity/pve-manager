@@ -157,3 +157,48 @@ export async function getClusterStorages(
 ): Promise<Storage[]> {
   return get<Storage[]>('/pve/cluster/storage', undefined, options)
 }
+
+/**
+ * 上传文件到存储
+ * @param node 节点名称
+ * @param storage 存储名称
+ * @param formData 表单数据（包含 file 和 content 字段）
+ * @param options 查询选项
+ */
+export async function uploadStorageFile(
+  node: string,
+  storage: string,
+  formData: FormData,
+  options?: QueryOptions,
+): Promise<{ upid: string; message: string }> {
+  const params = new URLSearchParams()
+  if (options?.params) {
+    Object.entries(options.params).forEach(([k, v]) => params.set(k, String(v)))
+  }
+  const queryString = params.toString()
+  const url = `/pve/nodes/${node}/storage/${storage}/upload${queryString ? '?' + queryString : ''}`
+  
+  return post(url, formData, {
+    ...options,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 删除存储中的文件
+ * @param node 节点名称
+ * @param storage 存储名称
+ * @param volume 卷标识
+ * @param options 查询选项
+ */
+export async function deleteStorageContent(
+  node: string,
+  storage: string,
+  volume: string,
+  options?: QueryOptions,
+): Promise<{ upid: string; message: string }> {
+  return del(`/pve/nodes/${node}/storage/${storage}/content`, {
+    ...options,
+    params: { volume },
+  })
+}

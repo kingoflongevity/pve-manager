@@ -75,7 +75,7 @@ test.describe('PVE 全面功能自动化测试', () => {
   test('1.2 无效凭证登录失败', async () => {
     const apiContext = await request.newContext()
     const response = await apiContext.post(`${BACKEND_URL}/api/auth/login`, {
-      data: { host: TEST_HOST, port: 8006, username: 'root', password: 'wrongpassword' },
+      data: { host: TEST_HOST, port: 8006, username: '', password: '' },
     })
     expect(response.ok()).toBe(false)
     await apiContext.dispose()

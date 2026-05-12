@@ -47,13 +47,16 @@ func loadAppConfig() *appConfig {
 }
 
 // setupRoutes 注册所有 API 路由
-// 按功能模块分组：认证、集群、节点、存储、QEMU、LXC、访问控制
+// 按功能模块分组：认证、集群、节点、存储、QEMU、LXC、访问控制、AI、应用商店
 func setupRoutes(
 	r *gin.Engine,
 	authHandler *handler.AuthHandler,
 	proxyHandler *handler.ProxyHandler,
 	vncHandler *handler.VNCProxyHandler,
 	termHandler *handler.TermProxyHandler,
+	aiHandler *handler.AIHandler,
+	appStoreHandler *handler.AppStoreHandler,
+	accessHandler *handler.AccessHandler,
 ) {
 	r.Use(handler.CORS())
 
@@ -113,6 +116,8 @@ func setupRoutes(
 			storage.GET("/:storage/status", proxyHandler.GetStorageStatus)
 			storage.GET("/:storage/content", proxyHandler.GetStorageContent)
 			storage.POST("/:storage/download", proxyHandler.DownloadISO)
+			storage.POST("/:storage/upload", proxyHandler.UploadFile)
+			storage.DELETE("/:storage/content", proxyHandler.DeleteStorageFile)
 			storage.GET("/:storage", proxyHandler.GetStorageDetail)
 			storage.POST("", proxyHandler.CreateStorage)
 			storage.POST("/:storage", proxyHandler.UpdateStorage)
@@ -163,25 +168,25 @@ func setupRoutes(
 		// 访问控制
 		access := api.Group("/access")
 		{
-			access.GET("/users", proxyHandler.GetUsers)
-			access.POST("/users", proxyHandler.CreateUser)
-			access.GET("/users/:userid", proxyHandler.GetUser)
-			access.POST("/users/:userid", proxyHandler.UpdateUser)
-			access.DELETE("/users/:userid", proxyHandler.DeleteUser)
-			access.POST("/users/:userid/password", proxyHandler.UpdateUserPassword)
-			access.GET("/groups", proxyHandler.GetGroups)
-			access.POST("/groups", proxyHandler.CreateGroup)
-			access.GET("/groups/:groupid", proxyHandler.GetGroup)
-			access.POST("/groups/:groupid", proxyHandler.UpdateGroup)
-			access.DELETE("/groups/:groupid", proxyHandler.DeleteGroup)
-			access.GET("/roles", proxyHandler.GetRoles)
-			access.POST("/roles", proxyHandler.CreateRole)
-			access.POST("/roles/:roleid", proxyHandler.UpdateRole)
-			access.DELETE("/roles/:roleid", proxyHandler.DeleteRole)
-			access.GET("/acl", proxyHandler.GetACLs)
-			access.POST("/acl", proxyHandler.SetACL)
-			access.GET("/domains", proxyHandler.GetDomains)
-			access.GET("/domains/:realm", proxyHandler.GetDomain)
+			access.GET("/users", accessHandler.ListUsers)
+			access.POST("/users", accessHandler.CreateUser)
+			access.GET("/users/:userid", accessHandler.GetUser)
+			access.POST("/users/:userid", accessHandler.UpdateUser)
+			access.DELETE("/users/:userid", accessHandler.DeleteUser)
+			access.POST("/users/:userid/password", accessHandler.UpdatePassword)
+			access.GET("/groups", accessHandler.ListGroups)
+			access.POST("/groups", accessHandler.CreateGroup)
+			access.GET("/groups/:groupid", accessHandler.GetGroup)
+			access.POST("/groups/:groupid", accessHandler.UpdateGroup)
+			access.DELETE("/groups/:groupid", accessHandler.DeleteGroup)
+			access.GET("/roles", accessHandler.ListRoles)
+			access.POST("/roles", accessHandler.CreateRole)
+			access.POST("/roles/:roleid", accessHandler.UpdateRole)
+			access.DELETE("/roles/:roleid", accessHandler.DeleteRole)
+			access.GET("/acl", accessHandler.ListACLs)
+			access.POST("/acl", accessHandler.SetACL)
+			access.GET("/domains", accessHandler.ListDomains)
+			access.GET("/domains/:realm", accessHandler.GetDomain)
 		}
 
 		// WebSocket VNC
@@ -195,6 +200,49 @@ func setupRoutes(
 		{
 			admin.GET("/pve-configs", authHandler.GetPVEConfigs)
 			admin.GET("/audit-logs", authHandler.GetAuditLogs)
+		}
+
+		// AI 智能体
+		ai := api.Group("/ai")
+		{
+			// 模型配置
+			ai.GET("/models", aiHandler.GetModelConfigs)
+			ai.POST("/models", aiHandler.CreateModelConfig)
+			ai.PUT("/models/:id", aiHandler.UpdateModelConfig)
+			ai.DELETE("/models/:id", aiHandler.DeleteModelConfig)
+			ai.POST("/models/:id/default", aiHandler.SetDefaultModel)
+			ai.POST("/models/:id/test", aiHandler.TestModelConnection)
+
+			// 对话管理
+			ai.GET("/conversations", aiHandler.GetConversations)
+			ai.GET("/conversations/:id", aiHandler.GetConversationDetail)
+			ai.POST("/conversations", aiHandler.CreateConversation)
+			ai.POST("/conversations/:id/message", aiHandler.SendMessage)
+			ai.DELETE("/conversations/:id", aiHandler.DeleteConversation)
+
+			// 报告管理
+			ai.GET("/reports", aiHandler.GetReports)
+			ai.GET("/reports/:id", aiHandler.GetReportDetail)
+			ai.POST("/reports/generate", aiHandler.GenerateReport)
+			ai.DELETE("/reports/:id", aiHandler.DeleteReport)
+
+			// 诊断和建议
+			ai.POST("/diagnose", aiHandler.Diagnose)
+			ai.POST("/suggest", aiHandler.GetSuggestion)
+		}
+
+		// 应用商店
+		apps := api.Group("/apps")
+		{
+			apps.GET("", appStoreHandler.GetAppTemplates)
+			apps.GET("/categories", appStoreHandler.GetAppCategories)
+			apps.GET("/:id", appStoreHandler.GetAppTemplateDetail)
+			apps.POST("/deploy", appStoreHandler.DeployApp)
+			apps.GET("/deployments", appStoreHandler.GetAppDeployments)
+			apps.GET("/deployments/:id", appStoreHandler.GetAppDeploymentDetail)
+			apps.DELETE("/deployments/:id", appStoreHandler.DeleteAppDeployment)
+			apps.POST("/import", appStoreHandler.ImportTemplate)
+			apps.POST("/sync", appStoreHandler.SyncTemplates)
 		}
 	}
 }
@@ -234,6 +282,20 @@ func main() {
 	vncHandler := handler.NewVNCProxyHandler(authService, logger)
 	termHandler := handler.NewTermProxyHandler(authService, logger)
 
+	// 初始化 AI 和应用商店服务
+	aiService := service.NewAIService(database.GetDB(), logger)
+	appStoreService := service.NewAppStoreService(database.GetDB(), logger)
+
+	// 初始化内置应用模板
+	if err := appStoreService.SeedTemplates(); err != nil {
+		logger.Warn("应用模板初始化失败", zap.Error(err))
+	}
+
+	// 初始化 AI 和应用商店 Handlers
+	aiHandler := handler.NewAIHandler(aiService, logger)
+	appStoreHandler := handler.NewAppStoreHandler(appStoreService, logger)
+	accessHandler := handler.NewAccessHandler(logger)
+
 	// 设置 Gin 模式
 	if appCfg.Debug {
 		gin.SetMode(gin.DebugMode)
@@ -247,7 +309,7 @@ func main() {
 	r.Use(gin.Logger())
 
 	// 注册路由
-	setupRoutes(r, authHandler, proxyHandler, vncHandler, termHandler)
+	setupRoutes(r, authHandler, proxyHandler, vncHandler, termHandler, aiHandler, appStoreHandler, accessHandler)
 
 	// 启动服务器
 	addr := fmt.Sprintf(":%d", appCfg.Port)

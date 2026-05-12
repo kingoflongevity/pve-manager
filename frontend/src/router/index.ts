@@ -98,6 +98,29 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/lxc/LXCDetailView.vue'),
         meta: { title: '容器详情' },
       },
+      {
+        path: 'ai',
+        name: 'AICenter',
+        redirect: '/ai/chat',
+        meta: { title: 'AI 智能中心' },
+        children: [
+          { path: 'chat', name: 'AIChat', component: () => import('@/views/ai/ChatView.vue'), meta: { title: 'AI 对话' } },
+          { path: 'reports', name: 'AIReports', component: () => import('@/views/ai/ReportsView.vue'), meta: { title: 'AI 报告' } },
+          { path: 'settings', name: 'AISettings', component: () => import('@/views/ai/SettingsView.vue'), meta: { title: 'AI 设置' } },
+        ],
+      },
+      {
+        path: 'apps',
+        name: 'AppStoreList',
+        component: () => import('@/views/app-store/AppStoreView.vue'),
+        meta: { title: '应用商店' },
+      },
+      {
+        path: 'apps/deployments',
+        name: 'AppDeployments',
+        component: () => import('@/views/app-store/DeploymentsView.vue'),
+        meta: { title: '部署管理' },
+      },
     ],
   },
   // 全屏控制台（不需要 AppLayout 布局）

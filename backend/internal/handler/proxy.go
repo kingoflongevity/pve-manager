@@ -2,16 +2,21 @@ package handler
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kingoflongevity/pve-manager/backend/internal/client/pve"
+	"github.com/kingoflongevity/pve-manager/backend/internal/config"
 	"github.com/kingoflongevity/pve-manager/backend/internal/service"
 	"go.uber.org/zap"
 )
+
+var proxyDevMode = os.Getenv("PVE_DEV_MODE") == "true"
 
 // ProxyHandler PVE API 代理 HTTP 处理器
 // 仅负责参数提取、验证和响应格式化，业务逻辑委托给各 Service
@@ -47,7 +52,13 @@ func NewProxyHandler(
 }
 
 // buildClient 从请求 header 中提取 JWT 并构建已认证的 PVE 客户端
+// 开发模式下返回非 nil 的存根客户端（避免 nil 指针 panic，API 调用会返回连接错误）
 func (h *ProxyHandler) buildClient(c *gin.Context) (*pve.Client, error) {
+	if proxyDevMode {
+		cfg := config.PVEConfig{BaseURL: "http://dev.local:8006/api2/json", VerifyTLS: false}
+		client, _ := pve.NewClient(cfg, h.logger)
+		return client, nil
+	}
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
 		return nil, fmt.Errorf("未提供认证令牌")
@@ -63,6 +74,10 @@ func (h *ProxyHandler) buildClient(c *gin.Context) (*pve.Client, error) {
 // ==================== 集群管理 ====================
 
 func (h *ProxyHandler) GetClusterResources(c *gin.Context) {
+	if proxyDevMode {
+		h.success(c, devClusterResources())
+		return
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -83,6 +98,10 @@ func (h *ProxyHandler) GetClusterResources(c *gin.Context) {
 }
 
 func (h *ProxyHandler) GetClusterTasks(c *gin.Context) {
+	if proxyDevMode {
+		h.success(c, devClusterTasks())
+		return
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -257,6 +276,10 @@ func (h *ProxyHandler) GetDomains(c *gin.Context) {
 
 func (h *ProxyHandler) GetNodeStatus(c *gin.Context) {
 	node := c.Param("node")
+	if proxyDevMode {
+		h.success(c, devNodeStatus(node))
+		return
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -487,6 +510,10 @@ func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 	node := c.Param("node")
 	timeframe := c.DefaultQuery("timeframe", "hour")
 	cf := c.DefaultQuery("cf", "AVERAGE")
+	if proxyDevMode {
+		h.success(c, devNodeRRD(node, timeframe))
+		return
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -508,6 +535,10 @@ func (h *ProxyHandler) GetNodeRRD(c *gin.Context) {
 
 func (h *ProxyHandler) GetStorageList(c *gin.Context) {
 	node := c.Param("node")
+	if proxyDevMode {
+		h.success(c, devStorageList(node))
+		return
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -578,12 +609,76 @@ func (h *ProxyHandler) DownloadISO(c *gin.Context) {
 	h.success(c, gin.H{"upid": data, "message": "ISO 下载任务已提交"})
 }
 
+// UploadFile 上传文件到存储
+func (h *ProxyHandler) UploadFile(c *gin.Context) {
+	node := c.Param("node")
+	storage := c.Param("storage")
+	contentType := c.PostForm("content")
+	if contentType == "" {
+		contentType = "iso"
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		h.badRequest(c, "请选择要上传的文件")
+		return
+	}
+	defer file.Close()
+
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		h.serverError(c, "读取文件失败: "+err.Error())
+		return
+	}
+
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+
+	upid, err := client.UploadFileToStorage(c.Request.Context(), node, storage, contentType, header.Filename, fileData)
+	if err != nil {
+		h.serverError(c, "上传文件失败: "+err.Error())
+		return
+	}
+	h.success(c, gin.H{"upid": upid, "message": "文件上传任务已提交"})
+}
+
+// DeleteStorageFile 删除存储中的文件
+func (h *ProxyHandler) DeleteStorageFile(c *gin.Context) {
+	node := c.Param("node")
+	storage := c.Param("storage")
+	volume := c.Query("volume")
+	if volume == "" {
+		h.badRequest(c, "请指定要删除文件卷 ID")
+		return
+	}
+
+	client, err := h.buildClient(c)
+	if err != nil {
+		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
+		return
+	}
+
+	upid, err := client.DeleteStorageContent(c.Request.Context(), node, storage, volume)
+	if err != nil {
+		h.serverError(c, "删除文件失败: "+err.Error())
+		return
+	}
+	h.success(c, gin.H{"upid": upid, "message": "文件删除任务已提交"})
+}
+
 // ==================== QEMU 虚拟机 ====================
 
 func (h *ProxyHandler) GetQEMUList(c *gin.Context) {
 	node := c.Param("node")
 	if node == "" {
 		h.badRequest(c, "节点名称不能为空")
+		return
+	}
+	if proxyDevMode {
+		h.success(c, devVMList(node))
 		return
 	}
 	client, err := h.buildClient(c)
@@ -911,6 +1006,10 @@ func (h *ProxyHandler) GetLXCList(c *gin.Context) {
 		h.badRequest(c, "节点名称不能为空")
 		return
 	}
+	if proxyDevMode {
+		h.success(c, devLXCList(node))
+		return
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -1108,6 +1207,10 @@ func (h *ProxyHandler) DeleteLXCSnapshot(c *gin.Context) {
 // GetClusterStorage 获取集群级存储列表
 // PVE 9.x 不支持 GET /cluster/storage，改用 GET /cluster/resources?type=storage
 func (h *ProxyHandler) GetClusterStorage(c *gin.Context) {
+	if proxyDevMode {
+		h.success(c, devClusterStorage())
+		return
+	}
 	client, err := h.buildClient(c)
 	if err != nil {
 		h.serverError(c, "获取 PVE 客户端失败: "+err.Error())
@@ -1795,4 +1898,115 @@ func (h *ProxyHandler) serverError(c *gin.Context, message string) {
 		"code":    errCode,
 		"message": message,
 	})
+}
+
+// ==================== 开发模式模拟数据 ====================
+
+func devClusterResources() []map[string]interface{} {
+	return []map[string]interface{}{
+		{"id": "node/dev1", "type": "node", "node": "dev1", "status": "online", "cpu": 0.15, "maxcpu": 8, "mem": 4294967296, "maxmem": 17179869184, "uptime": 864000, "level": ""},
+		{"id": "node/dev2", "type": "node", "node": "dev2", "status": "online", "cpu": 0.08, "maxcpu": 4, "mem": 2147483648, "maxmem": 8589934592, "uptime": 432000, "level": ""},
+		{"id": "qemu/100", "type": "qemu", "vmid": 100, "node": "dev1", "name": "web-server", "status": "running", "cpu": 0.05, "maxcpu": 2, "mem": 1073741824, "maxmem": 2147483648, "maxdisk": 34359738368, "uptime": 86400},
+		{"id": "qemu/101", "type": "qemu", "vmid": 101, "node": "dev1", "name": "db-server", "status": "running", "cpu": 0.12, "maxcpu": 4, "mem": 4294967296, "maxmem": 8589934592, "maxdisk": 107374182400, "uptime": 259200},
+		{"id": "lxc/200", "type": "lxc", "vmid": 200, "node": "dev2", "name": "nginx-lb", "status": "running", "cpu": 0.02, "maxcpu": 1, "mem": 536870912, "maxmem": 1073741824, "maxdisk": 8589934592, "uptime": 172800},
+		{"id": "lxc/201", "type": "lxc", "vmid": 201, "node": "dev2", "name": "redis-cache", "status": "running", "cpu": 0.03, "maxcpu": 1, "mem": 536870912, "maxmem": 1073741824, "maxdisk": 10737418240, "uptime": 172800},
+		{"id": "storage/local-lvm", "type": "storage", "storage": "local-lvm", "node": "dev1", "content": "images,rootdir", "maxdisk": 536870912000, "disk": 161061273600},
+		{"id": "storage/local", "type": "storage", "storage": "local", "node": "dev1", "content": "vztmpl,iso,backup", "maxdisk": 107374182400, "disk": 32212254720},
+	}
+}
+
+func devNodeStatus(node string) map[string]interface{} {
+	return map[string]interface{}{
+		"node":   node,
+		"status": "online",
+		"cpu":    0.15,
+		"maxcpu": 8,
+		"memory": map[string]interface{}{
+			"used":  4294967296,
+			"total": 17179869184,
+			"free":  12884901888,
+		},
+		"uptime": 864000,
+		"kversion":    "Linux 6.8.0-52-generic",
+		"pveversion":  "pve-manager/8.3.0",
+		"cpuinfo": map[string]interface{}{
+			"model":  "Intel Xeon E-2388G",
+			"cores":  8,
+			"sockets": 1,
+		},
+	}
+}
+
+func devVMList(node string) []map[string]interface{} {
+	return []map[string]interface{}{
+		{"vmid": 100, "name": "web-server", "status": "running", "cpus": 2, "maxmem": 2147483648, "mem": 1073741824, "maxdisk": 34359738368, "uptime": 86400, "node": node},
+		{"vmid": 101, "name": "db-server", "status": "running", "cpus": 4, "maxmem": 8589934592, "mem": 4294967296, "maxdisk": 107374182400, "uptime": 259200, "node": node},
+		{"vmid": 102, "name": "test-vm", "status": "stopped", "cpus": 1, "maxmem": 1073741824, "mem": 0, "maxdisk": 10737418240, "uptime": 0, "node": node},
+	}
+}
+
+func devLXCList(node string) []map[string]interface{} {
+	return []map[string]interface{}{
+		{"vmid": 200, "name": "nginx-lb", "status": "running", "cpus": 1, "maxmem": 1073741824, "mem": 536870912, "maxdisk": 8589934592, "maxswap": 536870912, "uptime": 172800, "node": node, "type": "debian"},
+		{"vmid": 201, "name": "redis-cache", "status": "running", "cpus": 1, "maxmem": 1073741824, "mem": 536870912, "maxdisk": 10737418240, "maxswap": 536870912, "uptime": 172800, "node": node, "type": "ubuntu"},
+		{"vmid": 202, "name": "dev-env", "status": "stopped", "cpus": 2, "maxmem": 2147483648, "mem": 0, "maxdisk": 21474836480, "maxswap": 1073741824, "uptime": 0, "node": node, "type": "alpine"},
+	}
+}
+
+func devStorageList(node string) []map[string]interface{} {
+	return []map[string]interface{}{
+		{"storage": "local", "type": "dir", "content": "vztmpl,iso,backup", "total": 107374182400, "used": 32212254720, "avail": 75161927680, "shared": 0, "node": node},
+		{"storage": "local-lvm", "type": "lvmthin", "content": "images,rootdir", "total": 536870912000, "used": 161061273600, "avail": 375809638400, "shared": 0, "node": node},
+		{"storage": "nfs-backup", "type": "nfs", "content": "backup", "total": 1099511627776, "used": 274877906944, "avail": 824633720832, "shared": 1, "node": node},
+	}
+}
+
+func devNodeRRD(node string, timeframe string) []map[string]interface{} {
+	now := time.Now().Unix()
+	points := 48
+	data := make([]map[string]interface{}, points)
+	for i := 0; i < points; i++ {
+		t := now - int64((points-i)*300)
+		cpuBase := 0.12
+		if i > points-5 {
+			cpuBase = 0.25
+		}
+		cpuVal := cpuBase + float64(i%7)*0.03 - float64(i%3)*0.01
+		if cpuVal < 0 {
+			cpuVal = 0.03
+		}
+		if cpuVal > 0.6 {
+			cpuVal = 0.55
+		}
+		data[i] = map[string]interface{}{
+			"time": t,
+			"cpu":  cpuVal,
+			"iowait": cpuVal * 0.05,
+			"maxcpu": 8.0,
+			"mem":   4294967296 + int64(i%10)*107374182,
+			"maxmem": 17179869184,
+			"netin":  1048576 + int64(i%20)*524288,
+			"netout": 524288 + int64(i%15)*262144,
+			"diskread":  10485760 + int64(i%8)*5242880,
+			"diskwrite": 5242880 + int64(i%12)*2621440,
+		}
+	}
+	return data
+}
+
+func devClusterTasks() []map[string]interface{} {
+	now := time.Now().Unix()
+	return []map[string]interface{}{
+		{"upid": "UPID:dev1:00000001:00000000:00000000:vzdump::root@pam:", "node": "dev1", "type": "vzdump", "user": "root@pam", "status": "OK", "starttime": now - 1800, "endtime": now - 1200},
+		{"upid": "UPID:dev1:00000002:00000000:00000000:qmstart:100:root@pam:", "node": "dev1", "type": "qmstart", "id": "100", "user": "root@pam", "status": "OK", "starttime": now - 300, "endtime": now - 280},
+		{"upid": "UPID:dev2:00000003:00000000:00000000:aptupdate::root@pam:", "node": "dev2", "type": "aptupdate", "user": "root@pam", "status": "running", "starttime": now - 60},
+	}
+}
+
+func devClusterStorage() []map[string]interface{} {
+	return []map[string]interface{}{
+		{"id": "storage/local", "type": "storage", "storage": "local", "node": "dev1", "content": "vztmpl,iso,backup", "maxdisk": 107374182400, "disk": 32212254720},
+		{"id": "storage/local-lvm", "type": "storage", "storage": "local-lvm", "node": "dev1", "content": "images,rootdir", "maxdisk": 536870912000, "disk": 161061273600},
+		{"id": "storage/nfs-backup", "type": "storage", "storage": "nfs-backup", "node": "dev2", "content": "backup", "maxdisk": 1099511627776, "disk": 274877906944},
+	}
 }
